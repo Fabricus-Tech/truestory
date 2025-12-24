@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrueStory - Test-linked Requirements And Continuous Evaluation</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e14;
+            --bg-secondary: #151b24;
+            --bg-card: #1a2332;
+            --accent-green: #00ff9d;
+            --accent-yellow: #ffb800;
+            --accent-red: #ff3860;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --border: #30363d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Navigation */
+        nav {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid var(--border);
+            background: rgba(10, 14, 20, 0.8);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: 'Space Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-green);
+            letter-spacing: -0.02em;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent-green);
+        }
+
+        .nav-links a.simulate {
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        .nav-links a.simulate::before {
+            content: '🎮';
+            margin-right: 0.5rem;
+        }
+
+        .nav-cta {
+            padding: 0.75rem 1.5rem;
+            background: var(--accent-green);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .nav-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 255, 157, 0.3);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 8rem 0 6rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(0, 255, 157, 0.08) 0%, transparent 70%);
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(-50px, -50px) scale(1.1); }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 50px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--accent-green);
+            margin-bottom: 2rem;
+            animation: slideDown 0.6s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            animation: slideUp 0.8s ease-out 0.2s both;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--accent-green) 0%, #00d4ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            max-width: 700px;
+            animation: slideUp 0.8s ease-out 0.4s both;
+        }
+
+        .cta-group {
+            display: flex;
+            gap: 1rem;
+            animation: slideUp 0.8s ease-out 0.6s both;
+        }
+
+        .btn-primary, .btn-secondary {
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.05rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: var(--accent-green);
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 24px rgba(0, 255, 157, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 2px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-green);
+            background: rgba(0, 255, 157, 0.05);
+        }
+
+        /* Flow Diagram Section */
+        .flow-section {
+            padding: 6rem 0;
+            background: var(--bg-secondary);
+            position: relative;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 4rem;
+        }
+
+        .flow-diagram {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+            margin-top: 3rem;
+            position: relative;
+        }
+
+        .flow-step {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .flow-step:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-green);
+            box-shadow: 0 8px 24px rgba(0, 255, 157, 0.2);
+        }
+
+        .flow-step::after {
+            content: '→';
+            position: absolute;
+            right: -2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 2rem;
+            color: var(--accent-green);
+            font-weight: 700;
+        }
+
+        .flow-step:last-child::after {
+            content: '';
+        }
+
+        .flow-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .flow-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--accent-green);
+        }
+
+        .flow-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Features Section */
+        .features-section {
+            padding: 6rem 0;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-green);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover::before {
+            transform: scaleY(1);
+        }
+
+        .feature-card:hover {
+            border-color: var(--accent-green);
+            transform: translateX(8px);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 255, 157, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .feature-desc {
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .coverage-indicators {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        .indicator-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .red-dot { background: var(--accent-red); }
+        .yellow-dot { background: var(--accent-yellow); }
+        .green-dot { background: var(--accent-green); }
+
+        /* Stats Section */
+        .stats-section {
+            padding: 4rem 0;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 3rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-family: 'Space Mono', monospace;
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--accent-green);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* Target Section */
+        .target-section {
+            padding: 6rem 0;
+            text-align: center;
+        }
+
+        .target-box {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 3rem;
+            max-width: 800px;
+            margin: 2rem auto 0;
+        }
+
+        .target-box h3 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .target-box p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            padding: 6rem 0;
+            background: linear-gradient(135deg, rgba(0, 255, 157, 0.05) 0%, rgba(0, 212, 255, 0.05) 100%);
+            text-align: center;
+        }
+
+        .cta-section h2 {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .cta-section p {
+            font-size: 1.3rem;
+            color: var(--text-secondary);
+            margin-bottom: 2.5rem;
+        }
+
+        /* Footer */
+        footer {
+            padding: 3rem 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+
+        .footer-logo {
+            font-family: 'Space Mono', monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent-green);
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            h1 { font-size: 3rem; }
+            .hero-subtitle { font-size: 1.2rem; }
+            .flow-diagram {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            .flow-step::after {
+                content: '↓';
+                right: 50%;
+                top: auto;
+                bottom: -2.5rem;
+                transform: translateX(50%);
+            }
+            .flow-step:last-child::after {
+                content: '';
+            }
+            .cta-group {
+                flex-direction: column;
+            }
+            .footer-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            .nav-right {
+                gap: 1rem;
+            }
+            .nav-links a {
+                font-size: 0.85rem;
+            }
+            .nav-cta {
+                font-size: 0.85rem;
+                padding: 0.6rem 1.2rem;
+            }
+        }
+
+        @media (max-width: 640px) {
+            h1 { font-size: 2.2rem; }
+            .hero { padding: 4rem 0 3rem; }
+            .section-title { font-size: 2rem; }
+            .cta-section h2 { font-size: 2rem; }
+            .nav-right {
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: flex-end;
+            }
+            .nav-links {
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <div class="logo">TrueStory</div>
+            <div class="nav-right">
+                <div class="nav-links">
+                    <a href="truestory-realistic-simulation.html" class="simulate">Simulate</a>
+                    <a href="truestory-qa-dashboard.html">Project Dashboard</a>
+                </div>
+                <a href="mailto:hello@true-story.tech?subject=Early Access Request" class="nav-cta">Request Early Access</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-badge">TRACE Methodology</div>
+                <h1>Ship <span>stable code</span>,<br>not buggy merges</h1>
+                <p class="hero-subtitle">
+                    AI-powered QA orchestration with flexible data sovereignty. Turn requirements into comprehensive test suites instantly, then enforce quality gates before merge.
+                </p>
+                <div class="cta-group">
+                    <a href="mailto:hello@true-story.tech?subject=Demo Request" class="btn-primary">Request Demo</a>
+                    <button class="btn-secondary" onclick="document.querySelector('.flow-section').scrollIntoView({behavior: 'smooth'})">See How It Works</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="flow-section">
+        <div class="container">
+            <h2 class="section-title">The TRACE Flow</h2>
+            <p class="section-subtitle">From requirements to deployment, with QA built into every step</p>
+            
+            <div class="flow-diagram">
+                <div class="flow-step">
+                    <div class="flow-icon">📋</div>
+                    <div class="flow-title">Requirements</div>
+                    <div class="flow-desc">Define and version project specifications</div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-icon">✅</div>
+                    <div class="flow-title">Test Cases</div>
+                    <div class="flow-desc">Link tests to requirements with coverage tracking</div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-icon">🔄</div>
+                    <div class="flow-title">PR Created</div>
+                    <div class="flow-desc">Developer submits pull request</div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-icon">⏸️</div>
+                    <div class="flow-title">QA Gate</div>
+                    <div class="flow-desc">Pipeline pauses for QA validation</div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-icon">🚀</div>
+                    <div class="flow-title">Merge</div>
+                    <div class="flow-desc">Approved code merges cleanly</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features-section" style="background: var(--bg-secondary); padding: 5rem 0;">
+        <div class="container">
+            <h2 class="section-title">AI That Knows Your Project</h2>
+            <p class="section-subtitle">Stop writing test cases from scratch. Let AI do the heavy lifting.</p>
+            
+            <div style="max-width: 900px; margin: 3rem auto; background: var(--bg-card); border: 2px solid var(--border); border-radius: 16px; padding: 3rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start;">
+                    <div>
+                        <h3 style="color: var(--accent-green); font-size: 1.1rem; margin-bottom: 1rem; font-family: 'JetBrains Mono', monospace;">YOU WRITE:</h3>
+                        <div style="background: rgba(0, 255, 157, 0.05); padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--accent-green);">
+                            <p style="color: var(--text-primary); font-size: 1rem; line-height: 1.6;">
+                                <strong>Requirement:</strong> API must implement rate limiting at 100 requests per minute per user
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 style="color: var(--accent-green); font-size: 1.1rem; margin-bottom: 1rem; font-family: 'JetBrains Mono', monospace;">AI SUGGESTS:</h3>
+                        <div style="background: rgba(0, 255, 157, 0.05); padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--accent-green);">
+                            <ul style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.8; list-style: none; padding: 0;">
+                                <li>✓ Verify 100 requests succeed</li>
+                                <li>✓ 101st request returns 429 error</li>
+                                <li>✓ Rate limit resets after 60 seconds</li>
+                                <li>✓ Different users have separate limits</li>
+                                <li>✓ Concurrent requests handled correctly</li>
+                                <li>✓ Rate limit headers returned properly</li>
+                                <li>✓ Burst traffic scenario testing</li>
+                                <li style="color: var(--text-primary); margin-top: 0.5rem; font-style: italic;">+ 3 more suggestions...</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border); text-align: center;">
+                    <p style="color: var(--text-secondary); font-size: 1rem;">
+                        <strong style="color: var(--accent-green);">Result:</strong> Red → Green coverage in under 2 minutes
+                    </p>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 2rem;">
+                <p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 700px; margin: 0 auto;">
+                    AI learns from your project description, tech stack, and historical patterns to suggest increasingly relevant test cases as your project grows.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="features-section">
+        <div class="container">
+            <h2 class="section-title">Built for Modern QA Teams</h2>
+            <p class="section-subtitle">Everything you need to make QA proactive, not reactive</p>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3 class="feature-title">AI-Powered Test Generation</h3>
+                    <p class="feature-desc">Write a requirement, get 5-10 comprehensive test cases instantly. Our AI learns from your project context to suggest relevant scenarios, edge cases, and validations. Turn red coverage into green in minutes, not hours.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3 class="feature-title">Your Data, Your Choice</h3>
+                    <p class="feature-desc">Host on TrueStory servers, your Git repository, Google Drive, or OneDrive. Complete data sovereignty with GDPR compliance built-in. You control where your requirements and test data live.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3 class="feature-title">Coverage Intelligence</h3>
+                    <p class="feature-desc">Track requirement coverage with visual indicators. Every requirement shows its test coverage status at a glance.</p>
+                    <div class="coverage-indicators">
+                        <div class="indicator">
+                            <span class="indicator-dot red-dot"></span>
+                            <span>1 test</span>
+                        </div>
+                        <div class="indicator">
+                            <span class="indicator-dot yellow-dot"></span>
+                            <span>2-4 tests</span>
+                        </div>
+                        <div class="indicator">
+                            <span class="indicator-dot green-dot"></span>
+                            <span>5+ tests</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📝</div>
+                    <h3 class="feature-title">Complete Audit Trail</h3>
+                    <p class="feature-desc">Every QA approval, rejection, and specification change is recorded. Perfect for ISO compliance and team accountability.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3 class="feature-title">Flexible QA Gates</h3>
+                    <p class="feature-desc">Configure which branches require QA approval, how many approvals are needed, and let developers select specific tests for validation.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔗</div>
+                    <h3 class="feature-title">CI/CD Integration</h3>
+                    <p class="feature-desc">Pipeline snippets for GitHub, GitLab, and Bitbucket. Seamless integration with your existing workflow.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <h3 class="feature-title">Root Cause Traceability</h3>
+                    <p class="feature-desc">Trace any issue back to its source requirement, test case, and approval history. Know exactly what happened and when.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🤝</div>
+                    <h3 class="feature-title">Tool Integration</h3>
+                    <p class="feature-desc">Works with your existing tools. Integrates with Jira for issue tracking and Slack for team communication.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats-section">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">Buggy Merges</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">100%</div>
+                    <div class="stat-label">Traceability</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">1</div>
+                    <div class="stat-label">Single Platform</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">∞</div>
+                    <div class="stat-label">Peace of Mind</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="target-section">
+        <div class="container">
+            <h2 class="section-title">Your Data. Your Infrastructure. Your Choice.</h2>
+            <div class="target-box">
+                <h3>Complete Data Sovereignty</h3>
+                <p>Choose where your requirements and test data live: TrueStory servers with enterprise-grade security, your own Git repository for maximum control, or your Google Drive/OneDrive for familiar infrastructure. Perfect for GDPR compliance, regulated industries, and teams that value data privacy.</p>
+            </div>
+            <div class="target-box" style="margin-top: 2rem;">
+                <h3>Built for Growing Software Teams</h3>
+                <p>Perfect for software houses with 20+ developers. When your team is big enough to have communication friction between dev and QA, but agile enough to implement better processes. TrueStory scales with you, from your first QA gate to ISO-certified deployment pipelines.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section" id="cta">
+        <div class="container">
+            <h2>Ready to harden your code?</h2>
+            <p>Join the early access program and be among the first to implement TRACE methodology.</p>
+            <a href="mailto:hello@true-story.tech?subject=Early Access Request" class="btn-primary" style="padding: 1.2rem 3rem; font-size: 1.1rem; text-decoration: none; display: inline-block;">Request Early Access</a>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">TrueStory</div>
+                <div class="footer-links">
+                    <a href="#features">Features</a>
+                    <a href="#methodology">TRACE Methodology</a>
+                    <a href="mailto:hello@true-story.tech">Contact</a>
+                </div>
+                <div style="color: var(--text-secondary);">
+                    © 2024 TrueStory. true-story.tech
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Add animation on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.feature-card, .flow-step').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>
+

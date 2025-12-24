@@ -1,0 +1,2032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrueStory: Real-World Workflow Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a0e14 0%, #1a2332 100%);
+            color: #e6edf3;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .sim-nav {
+            padding: 1rem 0;
+            margin-bottom: 1rem;
+        }
+
+        .sim-nav a {
+            color: #8b949e;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .sim-nav a:hover {
+            color: #00ff9d;
+        }
+
+        .sim-nav a::before {
+            content: '← ';
+            color: #00ff9d;
+        }
+
+        .game-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .game-header h1 {
+            font-size: 2.5rem;
+            color: #00ff9d;
+            margin-bottom: 0.5rem;
+        }
+
+        .game-header p {
+            color: #8b949e;
+            font-size: 1.1rem;
+        }
+
+        .timeline {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: rgba(0, 255, 157, 0.05);
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+
+        .timeline-step {
+            flex: 1;
+            min-width: 100px;
+            text-align: center;
+            padding: 0.75rem;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            opacity: 0.3;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-step.active {
+            opacity: 1;
+            background: rgba(0, 255, 157, 0.1);
+            border: 2px solid #00ff9d;
+        }
+
+        .timeline-step.completed {
+            opacity: 0.6;
+            background: rgba(0, 255, 157, 0.05);
+        }
+
+        .timeline-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .timeline-label {
+            font-size: 0.85rem;
+            color: #8b949e;
+        }
+
+        .game-card {
+            background: #1a2332;
+            border: 2px solid #30363d;
+            border-radius: 16px;
+            padding: 2.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .clock {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 255, 157, 0.1);
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2rem;
+            color: #00ff9d;
+            margin-bottom: 1.5rem;
+        }
+
+        .persona {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(0, 255, 157, 0.05);
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #00ff9d;
+        }
+
+        .persona-icon {
+            font-size: 3rem;
+        }
+
+        .persona-info h3 {
+            color: #00ff9d;
+            margin-bottom: 0.25rem;
+        }
+
+        .persona-info p {
+            color: #8b949e;
+            font-size: 0.9rem;
+        }
+
+        .scenario-text {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: #e6edf3;
+            margin-bottom: 2rem;
+        }
+
+        .scenario-text strong {
+            color: #00ff9d;
+        }
+
+        .requirement-card {
+            background: rgba(0, 255, 157, 0.05);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            border: 1px solid rgba(0, 255, 157, 0.2);
+        }
+
+        .req-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .req-id {
+            font-family: 'Courier New', monospace;
+            color: #00ff9d;
+            font-weight: 700;
+        }
+
+        .coverage-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .coverage-red {
+            background: rgba(255, 56, 96, 0.2);
+            color: #ff3860;
+        }
+
+        .coverage-yellow {
+            background: rgba(255, 184, 0, 0.2);
+            color: #ffb800;
+        }
+
+        .coverage-green {
+            background: rgba(0, 255, 157, 0.2);
+            color: #00ff9d;
+        }
+
+        .test-list {
+            margin-top: 1rem;
+            padding-left: 1.5rem;
+        }
+
+        .test-list li {
+            margin: 0.5rem 0;
+            color: #8b949e;
+        }
+
+        .choices {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .choice-btn {
+            background: rgba(0, 255, 157, 0.1);
+            border: 2px solid #30363d;
+            color: #e6edf3;
+            padding: 1.25rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .choice-btn:hover {
+            border-color: #00ff9d;
+            background: rgba(0, 255, 157, 0.15);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 255, 157, 0.2);
+        }
+
+        .choice-title {
+            font-weight: 600;
+            color: #00ff9d;
+            margin-bottom: 0.5rem;
+        }
+
+        .choice-desc {
+            font-size: 0.9rem;
+            color: #8b949e;
+            line-height: 1.5;
+        }
+
+        .notification {
+            background: rgba(0, 255, 157, 0.1);
+            border: 2px solid #00ff9d;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin: 1rem 0;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .notification-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .notification-icon {
+            font-size: 1.5rem;
+        }
+
+        .notification-title {
+            color: #00ff9d;
+            font-weight: 600;
+        }
+
+        .notification-body {
+            color: #8b949e;
+            font-size: 0.95rem;
+            padding-left: 2.25rem;
+        }
+
+        .outcome {
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            border-left: 4px solid;
+        }
+
+        .outcome.success {
+            background: rgba(0, 255, 157, 0.1);
+            border-color: #00ff9d;
+        }
+
+        .outcome.warning {
+            background: rgba(255, 184, 0, 0.1);
+            border-color: #ffb800;
+        }
+
+        .outcome.danger {
+            background: rgba(255, 56, 96, 0.1);
+            border-color: #ff3860;
+        }
+
+        .outcome.info {
+            background: rgba(100, 149, 237, 0.1);
+            border-color: #6495ed;
+        }
+
+        .outcome-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .outcome.success .outcome-title { color: #00ff9d; }
+        .outcome.warning .outcome-title { color: #ffb800; }
+        .outcome.danger .outcome-title { color: #ff3860; }
+        .outcome.info .outcome-title { color: #6495ed; }
+
+        .continue-btn {
+            background: #00ff9d;
+            color: #0a0e14;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .continue-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 255, 157, 0.3);
+        }
+
+        .restart-btn {
+            background: transparent;
+            color: #8b949e;
+            border: 2px solid #30363d;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .restart-btn:hover {
+            border-color: #00ff9d;
+            color: #00ff9d;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .stat-card {
+            background: rgba(0, 255, 157, 0.05);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #00ff9d;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #8b949e;
+            margin-top: 0.25rem;
+        }
+
+        .weak-spot {
+            background: rgba(255, 184, 0, 0.1);
+            border: 2px solid #ffb800;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .weak-spot-title {
+            color: #ffb800;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chat-message {
+            background: rgba(100, 149, 237, 0.1);
+            border-left: 4px solid #6495ed;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 4px;
+        }
+
+        .chat-sender {
+            font-weight: 600;
+            color: #6495ed;
+            margin-bottom: 0.25rem;
+        }
+
+        .chat-text {
+            color: #8b949e;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sim-nav">
+            <a href="index.html">Back to Home</a>
+        </div>
+
+        <div class="game-header">
+            <h1>📋 TrueStory: Real-World Workflow</h1>
+            <p>Experience a day in the life with TRACE methodology</p>
+        </div>
+
+        <div class="timeline" id="timeline">
+            <div class="timeline-step" data-step="po">
+                <div class="timeline-icon">👔</div>
+                <div class="timeline-label">PO Creates Req</div>
+            </div>
+            <div class="timeline-step" data-step="qa-test">
+                <div class="timeline-icon">✅</div>
+                <div class="timeline-label">QA Writes Tests</div>
+            </div>
+            <div class="timeline-step" data-step="dev">
+                <div class="timeline-icon">💻</div>
+                <div class="timeline-label">Dev Implements</div>
+            </div>
+            <div class="timeline-step" data-step="pr">
+                <div class="timeline-icon">🔄</div>
+                <div class="timeline-label">PR Created</div>
+            </div>
+            <div class="timeline-step" data-step="qa-validate">
+                <div class="timeline-icon">🔍</div>
+                <div class="timeline-label">QA Validates</div>
+            </div>
+            <div class="timeline-step" data-step="merge">
+                <div class="timeline-icon">🚀</div>
+                <div class="timeline-label">Merge & Deploy</div>
+            </div>
+        </div>
+
+        <div id="game-area"></div>
+    </div>
+
+    <script>
+        const gameState = {
+            currentStep: 'po',
+            time: '09:00 AM',
+            day: 'Monday',
+            decisions: [],
+            weakSpots: []
+        };
+
+        const scenarios = {
+            po_creates_req: {
+                step: 'po',
+                time: '09:00 AM - Monday',
+                persona: {
+                    icon: '👔',
+                    name: 'Sarah (Product Owner)',
+                    role: 'Defining new feature requirements'
+                },
+                text: `Sarah starts the week by creating a new requirement in TrueStory:
+                
+                <div class="requirement-card">
+                    <div class="req-header">
+                        <span class="req-id">REQ-156</span>
+                        <span class="coverage-badge coverage-red">⚠️ 0 tests</span>
+                    </div>
+                    <strong>Two-Factor Authentication for Login</strong>
+                    <p style="margin-top: 0.5rem; color: #8b949e;">
+                        Users must be able to enable 2FA using authenticator apps (Google Authenticator, Authy).
+                        SMS fallback for users without smartphone apps. Recovery codes must be generated during setup.
+                    </p>
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(0,255,157,0.2);">
+                        <strong style="color: #00ff9d;">Acceptance Criteria:</strong>
+                        <ul style="margin-top: 0.5rem; padding-left: 1.5rem; color: #8b949e;">
+                            <li>QR code generation for authenticator setup</li>
+                            <li>6-digit code verification</li>
+                            <li>10 recovery codes generated and downloadable</li>
+                            <li>SMS fallback option available</li>
+                            <li>Can disable 2FA from settings</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                Sarah saves the requirement. <strong>TrueStory automatically notifies the QA team.</strong>`,
+                choices: [
+                    {
+                        text: 'Continue as QA Engineer',
+                        desc: 'See what happens when Maria gets the notification',
+                        next: 'qa_receives_notification'
+                    }
+                ]
+            },
+
+            qa_receives_notification: {
+                step: 'qa-test',
+                time: '09:05 AM - Monday',
+                persona: {
+                    icon: '✅',
+                    name: 'Maria (QA Engineer)',
+                    role: 'Creating test cases for new requirement'
+                },
+                text: `Maria is working on regression tests when she receives a notification:
+                
+                <div class="notification">
+                    <div class="notification-header">
+                        <span class="notification-icon">🔔</span>
+                        <span class="notification-title">New Requirement Created</span>
+                    </div>
+                    <div class="notification-body">
+                        REQ-156: Two-Factor Authentication for Login<br>
+                        Created by Sarah • Priority: High • Coverage: RED (0 tests)
+                    </div>
+                </div>
+                
+                Maria clicks on the requirement and reviews the acceptance criteria. She has several options:`,
+                choices: [
+                    {
+                        text: 'Use AI to generate test cases',
+                        desc: 'Let AI suggest comprehensive test scenarios',
+                        next: 'qa_uses_ai'
+                    },
+                    {
+                        text: 'Manually write test cases',
+                        desc: 'Write tests based on experience',
+                        next: 'qa_manual_tests'
+                    },
+                    {
+                        text: 'Schedule for later',
+                        desc: 'Come back to it when less busy',
+                        next: 'qa_delays_tests'
+                    }
+                ]
+            },
+
+            qa_uses_ai: {
+                step: 'qa-test',
+                time: '09:10 AM - Monday',
+                persona: {
+                    icon: '✅',
+                    name: 'Maria (QA Engineer)',
+                    role: 'Reviewing AI-generated test cases'
+                },
+                text: `Maria clicks "Generate Test Cases with AI". TrueStory analyzes the requirement and project context...
+                
+                <div class="outcome success">
+                    <div class="outcome-title">🤖 AI Generated 15 Test Cases (2 minutes)</div>
+                    
+                    <strong>Setup & Registration Tests:</strong>
+                    <ul class="test-list">
+                        <li>✓ QR code generates correctly for authenticator app</li>
+                        <li>✓ Valid 6-digit code enables 2FA successfully</li>
+                        <li>✓ Invalid code shows appropriate error</li>
+                        <li>✓ 10 unique recovery codes generated and displayed</li>
+                        <li>✓ Recovery codes are downloadable as text file</li>
+                    </ul>
+                    
+                    <strong>Authentication Flow Tests:</strong>
+                    <ul class="test-list">
+                        <li>✓ Login requires 2FA code when enabled</li>
+                        <li>✓ Correct 2FA code grants access</li>
+                        <li>✓ Incorrect 2FA code denies access with proper message</li>
+                        <li>✓ Recovery code works when authenticator unavailable</li>
+                        <li>✓ Recovery code can only be used once</li>
+                    </ul>
+                    
+                    <strong>SMS Fallback & Edge Cases:</strong>
+                    <ul class="test-list">
+                        <li>✓ SMS fallback sends code to registered number</li>
+                        <li>✓ SMS code expires after 10 minutes</li>
+                        <li>✓ Rate limiting prevents SMS spam (max 3/hour)</li>
+                        <li>✓ User can disable 2FA from settings</li>
+                        <li>✓ Disabling 2FA requires password confirmation</li>
+                    </ul>
+                </div>
+                
+                <div class="requirement-card">
+                    <div class="req-header">
+                        <span class="req-id">REQ-156</span>
+                        <span class="coverage-badge coverage-green">✓ Coverage: GREEN (15 tests)</span>
+                    </div>
+                    <strong>Two-Factor Authentication for Login</strong>
+                </div>
+                
+                Maria reviews the suggestions, tweaks a couple, and approves. The requirement is now ready for development!
+                
+                <div class="notification">
+                    <div class="notification-header">
+                        <span class="notification-icon">📢</span>
+                        <span class="notification-title">Auto-notification Sent</span>
+                    </div>
+                    <div class="notification-body">
+                        Dev team notified: REQ-156 is ready for implementation with GREEN coverage
+                    </div>
+                </div>`,
+                choices: [
+                    {
+                        text: 'Continue as Developer',
+                        desc: 'See how Alex picks up the work',
+                        next: 'dev_starts_work_smooth'
+                    }
+                ]
+            },
+
+            qa_manual_tests: {
+                step: 'qa-test',
+                time: '09:15 AM - Monday',
+                persona: {
+                    icon: '✅',
+                    name: 'Maria (QA Engineer)',
+                    role: 'Writing test cases manually'
+                },
+                text: `Maria starts writing test cases based on the acceptance criteria...
+                
+                <div class="outcome warning">
+                    <div class="outcome-title">⏱️ Manual Test Writing (45 minutes)</div>
+                    Maria writes 8 test cases covering the main scenarios:
+                    <ul class="test-list">
+                        <li>✓ QR code generation works</li>
+                        <li>✓ Valid code enables 2FA</li>
+                        <li>✓ Invalid code shows error</li>
+                        <li>✓ Recovery codes generated</li>
+                        <li>✓ Login requires 2FA when enabled</li>
+                        <li>✓ SMS fallback sends code</li>
+                        <li>✓ User can disable 2FA</li>
+                        <li>✓ Recovery code works once</li>
+                    </ul>
+                    <br>
+                    <strong>Potentially missed:</strong> Rate limiting, SMS expiration, recovery code download, password confirmation on disable
+                </div>
+                
+                <div class="requirement-card">
+                    <div class="req-header">
+                        <span class="req-id">REQ-156</span>
+                        <span class="coverage-badge coverage-yellow">⚡ Coverage: YELLOW (8 tests)</span>
+                    </div>
+                    <strong>Two-Factor Authentication for Login</strong>
+                </div>
+                
+                Time: <strong>09:55 AM</strong> - Maria marks the requirement as ready for dev.`,
+                choices: [
+                    {
+                        text: 'Continue as Developer',
+                        desc: 'See how development proceeds',
+                        next: 'dev_starts_work_medium'
+                    }
+                ]
+            },
+
+            qa_delays_tests: {
+                step: 'qa-test',
+                time: '09:06 AM - Monday',
+                persona: {
+                    icon: '✅',
+                    name: 'Maria (QA Engineer)',
+                    role: 'Busy with other tasks'
+                },
+                text: `Maria is swamped with regression testing for the upcoming release. She thinks:
+                
+                <div class="chat-message">
+                    <div class="chat-sender">Maria (thinking)</div>
+                    <div class="chat-text">"I'll write tests for this tomorrow. Let me finish these regression tests first. The requirement isn't urgent anyway."</div>
+                </div>
+                
+                She snoozes the notification. The requirement stays in RED coverage state.
+                
+                <div class="weak-spot">
+                    <div class="weak-spot-title">⚠️ WEAK SPOT IDENTIFIED</div>
+                    <strong>Problem:</strong> No enforcement mechanism for test creation timeline<br>
+                    <strong>Risk:</strong> Developer might start working on RED-coverage requirement<br>
+                    <strong>Potential Solution:</strong> Policy setting - "Dev can only pick up requirements with YELLOW+ coverage"
+                </div>`,
+                choices: [
+                    {
+                        text: 'Developer picks up RED requirement',
+                        desc: 'See what happens when dev starts too early',
+                        next: 'dev_starts_premature'
+                    },
+                    {
+                        text: 'Developer waits for tests',
+                        desc: 'Dev respects the TRACE process',
+                        next: 'dev_waits_blocked'
+                    }
+                ]
+            },
+
+            dev_starts_premature: {
+                step: 'dev',
+                time: '10:00 AM - Monday',
+                persona: {
+                    icon: '💻',
+                    name: 'Alex (Senior Developer)',
+                    role: 'Starting implementation too early'
+                },
+                text: `Alex sees REQ-156 in the backlog and thinks it looks straightforward. The requirement has clear acceptance criteria, so Alex starts coding despite RED coverage.
+                
+                <div class="outcome danger">
+                    <div class="outcome-title">🚨 Process Violation Detected</div>
+                    Alex is implementing a requirement with insufficient test coverage. This violates TRACE methodology best practices.
+                </div>
+                
+                <strong>Wednesday, 3:15 PM</strong> - Alex finishes implementation and creates a PR.
+                
+                <div class="weak-spot">
+                    <div class="weak-spot-title">⚠️ WEAK SPOT IDENTIFIED #2</div>
+                    <strong>Problem:</strong> Maria still hasn't written comprehensive tests (busy with other work)<br>
+                    <strong>Current State:</strong> Code is written, PR is open, but only 1 basic test exists<br>
+                    <strong>Impact:</strong> QA will now test reactively instead of proactively defining scenarios upfront
+                </div>
+                
+                What happens next?`,
+                choices: [
+                    {
+                        text: 'Maria rushes to write tests',
+                        desc: 'QA scrambles to catch up',
+                        next: 'qa_reactive_testing'
+                    },
+                    {
+                        text: 'System blocks PR due to RED coverage',
+                        desc: 'Policy enforcement saves the day',
+                        next: 'system_blocks_red_pr'
+                    }
+                ]
+            },
+
+            dev_waits_blocked: {
+                step: 'dev',
+                time: '10:00 AM - Monday',
+                persona: {
+                    icon: '💻',
+                    name: 'Alex (Senior Developer)',
+                    role: 'Waiting for test coverage'
+                },
+                text: `Alex sees REQ-156 in the backlog but notices it has RED coverage (0 tests). Following TRACE methodology, Alex decides not to start work until QA defines the test scenarios.
+                
+                <div class="chat-message">
+                    <div class="chat-sender">Alex → Maria (Slack)</div>
+                    <div class="chat-text">"Hey Maria, I see REQ-156 for 2FA. Are you planning to write tests soon? I'm blocked on other tickets and could pick this up if tests are ready."</div>
+                </div>
+                
+                <div class="chat-message">
+                    <div class="chat-sender">Maria → Alex (Slack)</div>
+                    <div class="chat-text">"Oh shoot, I forgot about that! I was swamped yesterday. Give me 30 mins and I'll have tests ready."</div>
+                </div>
+                
+                <div class="weak-spot">
+                    <div class="weak-spot-title">⚠️ WEAK SPOT IDENTIFIED #3</div>
+                    <strong>Problem:</strong> Developer blocked waiting for QA, manual Slack communication needed<br>
+                    <strong>Lost Time:</strong> Alex wasted time checking Slack, context switching<br>
+                    <strong>Potential Solution:</strong> 
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li>Auto-reminder to QA if requirement sits in RED for >24 hours</li>
+                        <li>Dashboard showing "Ready for Dev" vs "Needs Tests" clearly</li>
+                        <li>SLA tracking for test creation</li>
+                    </ul>
+                </div>
+                
+                <strong>10:30 AM</strong> - Maria uses AI to generate tests quickly, gets to GREEN coverage.`,
+                choices: [
+                    {
+                        text: 'Continue Development',
+                        desc: 'Alex can now start with proper coverage',
+                        next: 'dev_starts_work_smooth'
+                    }
+                ]
+            },
+
+            dev_starts_work_smooth: {
+                step: 'dev',
+                time: '11:00 AM - Monday',
+                persona: {
+                    icon: '💻',
+                    name: 'Alex (Senior Developer)',
+                    role: 'Implementing 2FA feature'
+                },
+                text: `Alex starts implementing REQ-156 with confidence. The comprehensive test cases give Alex a clear roadmap:
+                
+                <div class="outcome success">
+                    <div class="outcome-title">✓ Clear Implementation Guide</div>
+                    With 15 test cases defined, Alex knows exactly what to build:
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li>QR code generation library needed</li>
+                        <li>6-digit TOTP verification algorithm</li>
+                        <li>Recovery code generation (10 unique codes)</li>
+                        <li>SMS integration for fallback</li>
+                        <li>Rate limiting service (3 SMS/hour max)</li>
+                        <li>Code expiration logic (10 minutes for SMS)</li>
+                    </ul>
+                    No ambiguity, no guesswork.
+                </div>
+                
+                <strong>Tuesday, 2:30 PM</strong> - Alex finishes implementation and local testing. Time to create PR.`,
+                choices: [
+                    {
+                        text: 'Create PR to develop',
+                        desc: 'Trigger CI/CD pipeline',
+                        next: 'pr_created_afternoon'
+                    }
+                ]
+            },
+
+            dev_starts_work_medium: {
+                step: 'dev',
+                time: '11:00 AM - Monday',
+                persona: {
+                    icon: '💻',
+                    name: 'Alex (Senior Developer)',
+                    role: 'Implementing with YELLOW coverage'
+                },
+                text: `Alex starts implementing REQ-156. The 8 test cases provide decent guidance, but some details are unclear:
+                
+                <div class="outcome warning">
+                    <div class="outcome-title">⚡ Partial Implementation Guide</div>
+                    Alex has to make assumptions about:
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li>How long should SMS codes be valid? (Guesses 15 minutes)</li>
+                        <li>Should there be rate limiting on SMS? (Decides no, not mentioned)</li>
+                        <li>Can recovery codes be regenerated? (Assumes yes)</li>
+                        <li>Should disabling 2FA require password? (Skips for now)</li>
+                    </ul>
+                </div>
+                
+                <strong>Tuesday, 3:45 PM</strong> - Alex finishes implementation and creates PR.`,
+                choices: [
+                    {
+                        text: 'Create PR',
+                        desc: 'See how QA validation goes',
+                        next: 'pr_created_afternoon_medium'
+                    }
+                ]
+            },
+
+            pr_created_afternoon: {
+                step: 'pr',
+                time: '2:45 PM - Tuesday',
+                persona: {
+                    icon: '🔄',
+                    name: 'Alex (Senior Developer)',
+                    role: 'Creating pull request'
+                },
+                text: `Alex pushes code and creates PR: <code>feat/2fa-authentication → develop</code>
+                
+                <div class="outcome success">
+                    <div class="outcome-title">⚡ CI/CD Pipeline Triggered</div>
+                    - Unit tests: ✓ Running (15 tests pass)
+                    - Automated E2E: ✓ Running  
+                    - Code coverage: ✓ 87%
+                    - Linting: ✓ Passed
+                    - TrueStory QA Gate: ⏸️ <strong>PAUSED - Awaiting QA Approval</strong>
+                </div>
+                
+                <strong>This is the key moment!</strong> In traditional workflow, what happens now?
+                
+                <div class="weak-spot">
+                    <div class="weak-spot-title">📊 Traditional Workflow Problems:</div>
+                    <strong>Old Way:</strong>
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li>PR sits there until next day's daily standup</li>
+                        <li>"Hey Maria, can you test my PR?" "Sure, I'll get to it this afternoon"</li>
+                        <li>Maria finds it Wednesday morning, tests Thursday</li>
+                        <li>Total lag: 24-48 hours</li>
+                    </ul>
+                    <br>
+                    <strong>TrueStory Way:</strong>
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li>Instant notification to Maria</li>
+                        <li>Can test immediately at 2:45 PM Tuesday</li>
+                        <li>No waiting for standup</li>
+                    </ul>
+                </div>`,
+                choices: [
+                    {
+                        text: 'Maria gets instant notification',
+                        desc: 'Real-time awareness - test same day',
+                        next: 'qa_notified_immediately'
+                    },
+                    {
+                        text: 'Simulate "old way" delay',
+                        desc: 'See impact of waiting for standup',
+                        next: 'qa_delayed_old_way'
+                    }
+                ]
+            },
+
+            pr_created_afternoon_medium: {
+                step: 'pr',
+                time: '3:50 PM - Tuesday',
+                persona: {
+                    icon: '🔄',
+                    name: 'Alex (Senior Developer)',
+                    role: 'PR created with YELLOW coverage'
+                },
+                text: `Alex pushes code and creates PR: <code>feat/2fa-authentication → develop</code>
+                
+                <div class="outcome warning">
+                    <div class="outcome-title">⏸️ CI/CD Pipeline Paused</div>
+                    - Unit tests: ✓ Passed (8 tests)
+                    - Automated tests: ✓ Passed
+                    - TrueStory QA Gate: ⏸️ <strong>PAUSED</strong>
+                    <br><br>
+                    ⚠️ Coverage: YELLOW - Some edge cases may not be tested
+                </div>
+                
+                Maria receives immediate notification.`,
+                choices: [
+                    {
+                        text: 'Maria tests immediately',
+                        desc: 'QA validation same afternoon',
+                        next: 'qa_finds_gaps_medium'
+                    }
+                ]
+            },
+
+            qa_notified_immediately: {
+                step: 'qa-validate',
+                time: '2:46 PM - Tuesday',
+                persona: {
+                    icon: '🔍',
+                    name: 'Maria (QA Engineer)',
+                    role: 'Testing PR in real-time'
+                },
+                text: `Maria's phone buzzes while she's finishing up a different test:
+                
+                <div class="notification">
+                    <div class="notification-header">
+                        <span class="notification-icon">🔔</span>
+                        <span class="notification-title">New PR Ready for Testing</span>
+                    </div>
+                    <div class="notification-body">
+                        PR #342: Two-Factor Authentication for Login<br>
+                        Created by Alex • Coverage: GREEN (15 tests) • CI: ✓ Passed
+                    </div>
+                </div>
+                
+                <div class="outcome success">
+                    <div class="outcome-title">✓ Immediate Context</div>
+                    Maria clicks the notification and immediately sees:
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li>The 15 test cases she wrote</li>
+                        <li>Which ones are automated (unit tests)</li>
+                        <li>Which ones need manual validation</li>
+                        <li>Link to the feature branch deployed to test environment</li>
+                    </ul>
+                </div>
+                
+                It's 2:46 PM. Maria has about 1.5 hours before EOD. What should she do?`,
+                choices: [
+                    {
+                        text: 'Test immediately (1.5 hours available)',
+                        desc: 'Validate same day, fast feedback',
+                        next: 'qa_tests_same_day'
+                    },
+                    {
+                        text: 'Schedule for tomorrow morning',
+                        desc: 'First thing Wednesday 9 AM',
+                        next: 'qa_schedules_next_day'
+                    }
+                ]
+            },
+
+            qa_delayed_old_way: {
+                step: 'qa-validate',
+                time: '9:00 AM - Wednesday (Next Day)',
+                persona: {
+                    icon: '🔍',
+                    name: 'Maria (QA Engineer)',
+                    role: 'Finding out about PR at standup'
+                },
+                text: `<strong>Daily Standup - 9:00 AM Wednesday</strong>
+                
+                <div class="chat-message">
+                    <div class="chat-sender">Alex</div>
+                    <div class="chat-text">"I finished the 2FA feature yesterday and created a PR. Maria, can you test it today?"</div>
+                </div>
+                
+                <div class="chat-message">
+                    <div class="chat-sender">Maria</div>
+                    <div class="chat-text">"Oh, I didn't know it was ready! Sure, I'll test it this afternoon after I finish the regression suite."</div>
+                </div>
+                
+                <div class="outcome danger">
+                    <div class="outcome-title">⏱️ Time Lost: 18 Hours</div>
+                    <ul style="padding-left: 1.5rem;">
+                        <li>PR created: Tuesday 2:45 PM</li>
+                        <li>Maria learns about it: Wednesday 9:00 AM</li>
+                        <li>Testing starts: Wednesday 2:00 PM (after other work)</li>
+                        <li><strong>Total delay: ~23 hours from PR creation</strong></li>
+                    </ul>
+                </div>
+                
+                <strong>2:00 PM Wednesday</strong> - Maria finally starts testing...
+                
+                <div class="weak-spot">
+                    <div class="weak-spot-title">⚠️ WEAK SPOT: Communication Overhead</div>
+                    <strong>Problems with "old way":</strong>
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li>Developer has to announce PR readiness manually</li>
+                        <li>QA must attend standup or check Slack</li>
+                        <li>Context switching interrupts both parties</li>
+                        <li>No prioritization - all PRs sound equally urgent</li>
+                        <li>If someone's on vacation, info gets lost</li>
+                    </ul>
+                </div>`,
+                choices: [
+                    {
+                        text: 'Continue testing',
+                        desc: 'See the final outcome',
+                        next: 'qa_tests_delayed'
+                    }
+                ]
+            },
+
+            qa_tests_same_day: {
+                step: 'qa-validate',
+                time: '3:00 PM - Tuesday',
+                persona: {
+                    icon: '🔍',
+                    name: 'Maria (QA Engineer)',
+                    role: 'Testing 2FA implementation'
+                },
+                text: `Maria opens TrueStory and starts working through the 15 test cases methodically:
+                
+                <div class="outcome success">
+                    <div class="outcome-title">✓ Structured Testing (90 minutes)</div>
+                    <strong>3:00 PM - Setup & Registration:</strong>
+                    <ul class="test-list">
+                        <li>✓ QR code generates correctly</li>
+                        <li>✓ Valid code enables 2FA</li>
+                        <li>✓ Invalid code shows error</li>
+                        <li>✓ Recovery codes generated (10 unique)</li>
+                        <li>✓ Recovery codes downloadable</li>
+                    </ul>
+                    
+                    <strong>3:30 PM - Authentication Flow:</strong>
+                    <ul class="test-list">
+                        <li>✓ Login requires 2FA code</li>
+                        <li>✓ Correct code grants access</li>
+                        <li>✓ Incorrect code denies access</li>
+                        <li>✓ Recovery code works</li>
+                        <li>✓ Recovery code single-use enforced</li>
+                    </ul>
+                    
+                    <strong>4:00 PM - SMS & Edge Cases:</strong>
+                    <ul class="test-list">
+                        <li>✓ SMS fallback sends code</li>
+                        <li>✓ SMS code expires (10 min)</li>
+                        <li>✓ Rate limiting works (3/hour)</li>
+                        <li>✓ Disable 2FA works</li>
+                        <li>✓ Password required to disable</li>
+                    </ul>
+                </div>
+                
+                <strong>4:30 PM Tuesday</strong> - All tests pass! Maria approves the PR.
+                
+                <div class="notification">
+                    <div class="notification-header">
+                        <span class="notification-icon">✅</span>
+                        <span class="notification-title">PR Approved</span>
+                    </div>
+                    <div class="notification-body">
+                        Maria approved PR #342<br>
+                        All 15 test cases passed • Ready to merge
+                    </div>
+                </div>
+                
+                Pipeline automatically continues and merges to develop at 4:31 PM.`,
+                choices: [
+                    {
+                        text: 'See Final Timeline',
+                        desc: 'Compare outcomes',
+                        next: 'outcome_excellent_timeline'
+                    }
+                ]
+            },
+
+            qa_tests_delayed: {
+                step: 'qa-validate',
+                time: '2:00 PM - Wednesday',
+                persona: {
+                    icon: '🔍',
+                    name: 'Maria (QA Engineer)',
+                    role: 'Testing after delay'
+                },
+                text: `Maria starts testing 23 hours after PR was created. Everything passes, but...
+                
+                <div class="outcome warning">
+                    <div class="outcome-title">⏱️ Timeline Impact</div>
+                    <strong>Timeline:</strong>
+                    <ul style="padding-left: 1.5rem;">
+                        <li>PR created: Tuesday 2:45 PM</li>
+                        <li>Testing starts: Wednesday 2:00 PM</li>
+                        <li>Testing complete: Wednesday 3:30 PM</li>
+                        <li>PR approved & merged: Wednesday 3:31 PM</li>
+                    </ul>
+                    <br>
+                    <strong>Delay: ~25 hours from PR to merge</strong><br>
+                    (vs. 2 hours with immediate notification)
+                </div>
+                
+                <div class="weak-spot">
+                    <div class="weak-spot-title">⚠️ Impact of Delay</div>
+                    <strong>What happened in those 23 hours:</strong>
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li>Alex context-switched to another ticket</li>
+                        <li>Another developer's PR blocked behind this one</li>
+                        <li>Sprint velocity slowed (could've deployed Tuesday)</li>
+                        <li>Customer demoing feature had to wait an extra day</li>
+                    </ul>
+                </div>`,
+                choices: [
+                    {
+                        text: 'Compare Outcomes',
+                        desc: 'See the difference',
+                        next: 'outcome_comparison'
+                    }
+                ]
+            },
+
+            qa_schedules_next_day: {
+                step: 'qa-validate',
+                time: '2:50 PM - Tuesday',
+                persona: {
+                    icon: '🔍',
+                    name: 'Maria (QA Engineer)',
+                    role: 'Planning next day'
+                },
+                text: `Maria sees the notification but decides 1.5 hours isn't enough time to properly test. She schedules it:
+                
+                <div class="outcome info">
+                    <div class="outcome-title">📅 Scheduled for Tomorrow</div>
+                    Maria marks the PR for first-thing Wednesday morning testing.<br>
+                    Alex gets a notification: "QA scheduled for Wed 9:00 AM"
+                </div>
+                
+                <strong>9:00 AM Wednesday</strong> - Maria starts testing systematically. Everything passes by 10:30 AM.
+                
+                <div class="outcome success">
+                    <div class="outcome-title">✓ Reasonable Delay</div>
+                    <strong>Timeline:</strong>
+                    <ul style="padding-left: 1.5rem;">
+                        <li>PR created: Tuesday 2:45 PM</li>
+                        <li>Testing scheduled: Tuesday 2:50 PM</li>
+                        <li>Testing starts: Wednesday 9:00 AM (as planned)</li>
+                        <li>PR approved: Wednesday 10:30 AM</li>
+                    </ul>
+                    <br>
+                    Delay: ~20 hours, but <strong>communicated and expected</strong>
+                </div>
+                
+                <div class="weak-spot">
+                    <div class="weak-spot-title">💡 GOOD PRACTICE IDENTIFIED</div>
+                    <strong>What worked well:</strong>
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li>Maria saw the PR immediately (not at standup)</li>
+                        <li>She made conscious decision about timing</li>
+                        <li>Alex was informed of the plan (no guessing)</li>
+                        <li>Testing happened first thing next day</li>
+                        <li>No communication overhead needed</li>
+                    </ul>
+                    <br>
+                    <strong>This is still 10-15x faster than "find out at standup" approach!</strong>
+                </div>`,
+                choices: [
+                    {
+                        text: 'See Final Outcomes',
+                        desc: 'Compare all paths',
+                        next: 'outcome_comparison'
+                    }
+                ]
+            },
+
+            qa_finds_gaps_medium: {
+                step: 'qa-validate',
+                time: '4:00 PM - Tuesday',
+                persona: {
+                    icon: '🔍',
+                    name: 'Maria (QA Engineer)',
+                    role: 'Testing YELLOW-coverage PR'
+                },
+                text: `Maria starts testing the 2FA implementation...
+                
+                <div class="outcome warning">
+                    <div class="outcome-title">⚠️ Issues Found (60 minutes)</div>
+                    While testing, Maria discovers problems not covered by the 8 tests:
+                    <ul class="test-list">
+                        <li>❌ No rate limiting on SMS - could be abused</li>
+                        <li>❌ SMS codes don't expire - security issue</li>
+                        <li>❌ Can disable 2FA without password confirmation</li>
+                    </ul>
+                </div>
+                
+                Maria documents the issues and <strong>REQUESTS CHANGES</strong> on the PR.
+                
+                <div class="notification">
+                    <div class="notification-header">
+                        <span class="notification-icon">🔄</span>
+                        <span class="notification-title">Changes Requested</span>
+                    </div>
+                    <div class="notification-body">
+                        Maria requested changes on PR #342<br>
+                        3 security issues found • See comments for details
+                    </div>
+                </div>
+                
+                <strong>Wednesday 10:00 AM</strong> - Alex sees the notification and spends 2 hours fixing the issues.
+                
+                <strong>Wednesday 12:00 PM</strong> - Alex pushes fixes, Maria re-tests (30 min), approves at 12:30 PM.`,
+                choices: [
+                    {
+                        text: 'See Impact Analysis',
+                        desc: 'What could have been prevented',
+                        next: 'outcome_medium_analysis'
+                    }
+                ]
+            },
+
+            qa_reactive_testing: {
+                step: 'qa-validate',
+                time: '3:30 PM - Wednesday',
+                persona: {
+                    icon: '🔍',
+                    name: 'Maria (QA Engineer)',
+                    role: 'Reactive testing mode'
+                },
+                text: `Maria rushes to write more tests and validate the feature that's already coded:
+                
+                <div class="outcome danger">
+                    <div class="outcome-title">🚨 Reactive QA Problems</div>
+                    <strong>What happens when QA is reactive:</strong>
+                    <ul style="padding-left: 1.5rem;">
+                        <li>Maria is now testing to see "what did the dev build?" instead of "what should be built?"</li>
+                        <li>She finds bugs, but it's too late - code is already written</li>
+                        <li>Rework is expensive - Alex has to refactor, retest</li>
+                        <li>Some architectural decisions are hard to change</li>
+                    </ul>
+                </div>
+                
+                Maria finds 6 issues that could have been prevented with upfront test definition:
+                <ul class="test-list">
+                    <li>❌ SMS sent via third-party service without rate limiting</li>
+                    <li>❌ Recovery codes stored in plain text (should be hashed)</li>
+                    <li>❌ No audit log for 2FA enable/disable events</li>
+                    <li>❌ QR code generation uses deprecated library</li>
+                    <li>❌ No backup method if SMS fails</li>
+                    <li>❌ Session management unclear when 2FA enabled</li>
+                </ul>
+                
+                <div class="weak-spot">
+                    <div class="weak-spot-title">⚠️ ROOT CAUSE: Skipped Upfront Test Definition</div>
+                    <strong>How we got here:</strong>
+                    <ol style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li>Maria was too busy to write tests when PO created requirement</li>
+                        <li>No enforcement prevented dev from starting on RED requirement</li>
+                        <li>Alex made reasonable assumptions but missed security concerns</li>
+                        <li>Maria now playing catch-up in reactive mode</li>
+                    </ol>
+                    <br>
+                    <strong>Cost: ~12 hours of rework + technical debt</strong>
+                </div>`,
+                choices: [
+                    {
+                        text: 'See Prevention Strategy',
+                        desc: 'How TrueStory policies could prevent this',
+                        next: 'prevention_strategies'
+                    }
+                ]
+            },
+
+            system_blocks_red_pr: {
+                step: 'pr',
+                time: '3:15 PM - Wednesday',
+                persona: {
+                    icon: '🔄',
+                    name: 'System',
+                    role: 'Policy enforcement'
+                },
+                text: `Alex tries to create the PR, but TrueStory blocks it:
+                
+                <div class="outcome danger">
+                    <div class="outcome-title">🚫 PR Blocked by Policy</div>
+                    <strong>Policy Violation:</strong> Cannot create PR for requirement with RED coverage
+                    <br><br>
+                    <strong>REQ-156 Status:</strong>
+                    <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                        <li>Coverage: RED (1 test only)</li>
+                        <li>Tests required: Minimum YELLOW (3+ tests)</li>
+                        <li>Action needed: QA must define test cases first</li>
+                    </ul>
+                </div>
+                
+                <div class="notification">
+                    <div class="notification-header">
+                        <span class="notification-icon">🔔</span>
+                        <span class="notification-title">QA Team Notified</span>
+                    </div>
+                    <div class="notification-body">
+                        Developer attempted PR on RED-coverage requirement<br>
+                        REQ-156 needs test cases urgently
+                    </div>
+                </div>
+                
+                <div class="outcome success">
+                    <div class="outcome-title">✓ Policy Enforcement Worked</div>
+                    <strong>What this prevented:</strong>
+                    <ul style="padding-left: 1.5rem;">
+                        <li>Reactive testing chaos</li>
+                        <li>Expensive code rework</li>
+                        <li>Security issues from incomplete specs</li>
+                        <li>Technical debt accumulation</li>
+                    </ul>
+                    <br>
+                    Maria gets the urgent notification, uses AI to generate tests (10 min), Alex can now create PR properly.
+                </div>
+                
+                <div class="weak-spot">
+                    <div class="weak-spot-title">💡 SOLUTION: Configurable Policies</div>
+                    <strong>TrueStory should offer policy settings:</strong>
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li><strong>Strict Mode:</strong> Block PRs on RED requirements (prevent this scenario)</li>
+                        <li><strong>Warning Mode:</strong> Allow PR but show big warning to dev and QA</li>
+                        <li><strong>Flexible Mode:</strong> Allow PR but track metrics for retrospectives</li>
+                    </ul>
+                    <br>
+                    Teams can choose based on maturity and culture.
+                </div>`,
+                choices: [
+                    {
+                        text: 'Explore More Scenarios',
+                        desc: 'What else could go wrong?',
+                        next: 'additional_scenarios_menu'
+                    }
+                ]
+            },
+
+            outcome_excellent_timeline: {
+                step: 'merge',
+                time: '4:31 PM - Tuesday',
+                text: `<div class="outcome success">
+                    <div class="outcome-title">🎯 OUTCOME: Optimal Flow - Same Day Deployment</div>
+                    
+                    <strong>Complete Timeline:</strong>
+                    <div style="margin: 1rem 0; padding: 1rem; background: rgba(0,255,157,0.05); border-radius: 8px;">
+                        <strong>Monday 9:00 AM:</strong> PO creates requirement → QA notified instantly<br>
+                        <strong>Monday 9:10 AM:</strong> QA uses AI, generates 15 tests (2 min), GREEN coverage<br>
+                        <strong>Monday 11:00 AM:</strong> Dev starts with clear test roadmap<br>
+                        <strong>Tuesday 2:45 PM:</strong> PR created → QA notified instantly<br>
+                        <strong>Tuesday 4:30 PM:</strong> QA completes testing, approves<br>
+                        <strong>Tuesday 4:31 PM:</strong> Merged to develop automatically<br>
+                        <br>
+                        <strong>Total time: 1.5 days from requirement to deployment</strong> ✓
+                    </div>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">0</div>
+                        <div class="stat-label">Bugs Found</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">2</div>
+                        <div class="stat-label">Hours Testing</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">0</div>
+                        <div class="stat-label">Rework Needed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">100%</div>
+                        <div class="stat-label">Team Confidence</div>
+                    </div>
+                </div>
+                
+                <div class="outcome success">
+                    <div class="outcome-title">✨ Key Success Factors</div>
+                    <strong>What made this work:</strong>
+                    <ul style="padding-left: 1.5rem;">
+                        <li><strong>Instant notifications:</strong> No waiting for standup or manual Slack messages</li>
+                        <li><strong>AI test generation:</strong> 2 minutes vs. 45 minutes manual</li>
+                        <li><strong>GREEN coverage:</strong> Dev had clear implementation guide</li>
+                        <li><strong>Real-time awareness:</strong> QA tested same afternoon PR was created</li>
+                        <li><strong>Proactive QA:</strong> Tests defined BEFORE code written</li>
+                    </ul>
+                </div>
+                
+                <div class="weak-spot">
+                    <div class="weak-spot-title">💪 STRENGTHS VALIDATED</div>
+                    <strong>TrueStory advantages proven:</strong>
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li>✓ Real-time notifications eliminate communication lag</li>
+                        <li>✓ AI reduces QA workload by 95% (2 min vs. 45 min)</li>
+                        <li>✓ Proactive testing prevents bugs before merge</li>
+                        <li>✓ TRACE methodology enforces quality gates</li>
+                        <li>✓ Same-day deployment possible with high confidence</li>
+                    </ul>
+                </div>`,
+                choices: []
+            },
+
+            outcome_comparison: {
+                step: 'merge',
+                text: `<div class="outcome info">
+                    <div class="outcome-title">📊 Side-by-Side Comparison</div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                        <div style="background: rgba(0,255,157,0.1); padding: 1rem; border-radius: 8px; border: 2px solid #00ff9d;">
+                            <strong style="color: #00ff9d;">INSTANT NOTIFICATION</strong>
+                            <div style="margin-top: 1rem; font-size: 0.9rem;">
+                                <strong>Timeline:</strong><br>
+                                PR → QA notified: 1 minute<br>
+                                Testing started: Same day<br>
+                                Approved: 2 hours later<br>
+                                <br>
+                                <strong>PR to merge: 2 hours</strong>
+                            </div>
+                        </div>
+                        
+                        <div style="background: rgba(255,184,0,0.1); padding: 1rem; border-radius: 8px; border: 2px solid #ffb800;">
+                            <strong style="color: #ffb800;">SCHEDULED NEXT DAY</strong>
+                            <div style="margin-top: 1rem; font-size: 0.9rem;">
+                                <strong>Timeline:</strong><br>
+                                PR → QA notified: 1 minute<br>
+                                Testing scheduled: Next morning<br>
+                                Approved: 10:30 AM next day<br>
+                                <br>
+                                <strong>PR to merge: 20 hours</strong>
+                            </div>
+                        </div>
+                        
+                        <div style="background: rgba(255,56,96,0.1); padding: 1rem; border-radius: 8px; border: 2px solid #ff3860;">
+                            <strong style="color: #ff3860;">OLD WAY (STANDUP)</strong>
+                            <div style="margin-top: 1rem; font-size: 0.9rem;">
+                                <strong>Timeline:</strong><br>
+                                PR → Learn at standup: 18 hours<br>
+                                Testing started: Afternoon<br>
+                                Approved: 3:30 PM next day<br>
+                                <br>
+                                <strong>PR to merge: 25 hours</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="outcome success">
+                    <div class="outcome-title">🚀 The Speed Advantage</div>
+                    <strong>Impact of real-time notifications:</strong>
+                    <ul style="padding-left: 1.5rem;">
+                        <li>12x faster than "old way" (2 hours vs. 25 hours)</li>
+                        <li>Even "scheduled next day" is 10x faster than traditional</li>
+                        <li>No communication overhead needed</li>
+                        <li>QA can plan their day better</li>
+                        <li>Developers get faster feedback</li>
+                        <li>Sprint velocity dramatically increased</li>
+                    </ul>
+                </div>
+                
+                <div class="weak-spot">
+                    <div class="weak-spot-title">💡 KEY INSIGHT</div>
+                    <strong>The 3pm Advantage:</strong>
+                    <br><br>
+                    When dev creates PR at 3pm Tuesday:
+                    <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                        <li><strong>TrueStory:</strong> QA can test same day if available, or schedule first-thing tomorrow (their choice)</li>
+                        <li><strong>Traditional:</strong> PR sits unknown until Wednesday 9am standup, testing starts afternoon</li>
+                    </ul>
+                    <br>
+                    This is especially important for distributed teams across timezones!
+                </div>`,
+                choices: []
+            },
+
+            outcome_medium_analysis: {
+                step: 'merge',
+                text: `<div class="outcome warning">
+                    <div class="outcome-title">📊 OUTCOME: Acceptable but Preventable Issues</div>
+                    
+                    <strong>Timeline:</strong>
+                    <div style="margin: 1rem 0; padding: 1rem; background: rgba(255,184,0,0.05); border-radius: 8px;">
+                        <strong>Monday:</strong> Requirement created, manual tests written (YELLOW coverage)<br>
+                        <strong>Tuesday 3:50 PM:</strong> PR created → QA notified instantly ✓<br>
+                        <strong>Tuesday 4:00 PM:</strong> QA testing starts<br>
+                        <strong>Tuesday 5:00 PM:</strong> 3 issues found, changes requested<br>
+                        <strong>Wednesday 12:00 PM:</strong> Fixes pushed<br>
+                        <strong>Wednesday 12:30 PM:</strong> Re-testing complete, approved<br>
+                        <br>
+                        <strong>Total: 2.5 days with one round of rework</strong>
+                    </div>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">3</div>
+                        <div class="stat-label">Bugs Found</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">2</div>
+                        <div class="stat-label">Hours Rework</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">45min</div>
+                        <div class="stat-label">Manual Tests</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">1</div>
+                        <div class="stat-label">Extra QA Round</div>
+                    </div>
+                </div>
+                
+                <div class="weak-spot">
+                    <div class="weak-spot-title">⚠️ What Could Have Been Better</div>
+                    <strong>The 3 issues found were all in AI suggestions:</strong>
+                    <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                        <li>❌ SMS rate limiting - AI suggested this in GREEN coverage</li>
+                        <li>❌ SMS expiration - AI suggested this in GREEN coverage</li>
+                        <li>❌ Password confirmation - AI suggested this in GREEN coverage</li>
+                    </ul>
+                    <br>
+                    <strong>Impact if AI was used:</strong>
+                    <ul style="padding-left: 1.5rem;">
+                        <li>Maria saves 43 minutes (45min manual → 2min AI)</li>
+                        <li>0 bugs found (all covered in tests)</li>
+                        <li>0 rework needed</li>
+                        <li>Deployed Tuesday instead of Wednesday</li>
+                        <li><strong>Saved: 1 day + 2 hours of rework</strong></li>
+                    </ul>
+                </div>
+                
+                <div class="outcome success">
+                    <div class="outcome-title">✓ What Did Work Well</div>
+                    <ul style="padding-left: 1.5rem;">
+                        <li>Instant notification still faster than traditional (same day testing)</li>
+                        <li>Issues caught before merge (not in production)</li>
+                        <li>Clear test cases guided rework</li>
+                        <li>One round of fixes, not multiple iterations</li>
+                    </ul>
+                </div>`,
+                choices: []
+            },
+
+            prevention_strategies: {
+                step: 'merge',
+                text: `<div class="weak-spot">
+                    <div class="weak-spot-title">🛡️ HOW TO PREVENT: TrueStory Policy Settings</div>
+                    
+                    <strong>Configurable Policies to Prevent This Scenario:</strong>
+                    
+                    <div style="margin: 1.5rem 0; padding: 1rem; background: rgba(0,255,157,0.05); border-radius: 8px;">
+                        <strong style="color: #00ff9d;">1. Coverage Requirements</strong>
+                        <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                            <li><strong>Block RED PRs:</strong> Cannot create PR if requirement has < 3 tests</li>
+                            <li><strong>Warn on YELLOW:</strong> Show warning but allow (good for urgent hotfixes)</li>
+                            <li><strong>Encourage GREEN:</strong> Badge/reward for GREEN coverage PRs</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="margin: 1.5rem 0; padding: 1rem; background: rgba(0,255,157,0.05); border-radius: 8px;">
+                        <strong style="color: #00ff9d;">2. QA Capacity Tracking</strong>
+                        <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                            <li><strong>Workload visibility:</strong> Show QA team's current load on dashboard</li>
+                            <li><strong>Auto-escalation:</strong> If requirement sits in RED for > 24 hours, notify QA lead</li>
+                            <li><strong>SLA tracking:</strong> Measure time from "requirement created" to "tests defined"</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="margin: 1.5rem 0; padding: 1rem; background: rgba(0,255,157,0.05); border-radius: 8px;">
+                        <strong style="color: #00ff9d;">3. Smart Notifications</strong>
+                        <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                            <li><strong>Priority scoring:</strong> Urgent requirements get louder notifications</li>
+                            <li><strong>Digest mode:</strong> QA can batch notifications if preferred</li>
+                            <li><strong>Team assignment:</strong> Rotate responsibilities so work is distributed</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="margin: 1.5rem 0; padding: 1rem; background: rgba(0,255,157,0.05); border-radius: 8px;">
+                        <strong style="color: #00ff9d;">4. AI Defaults</strong>
+                        <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                            <li><strong>Auto-suggest on create:</strong> When PO creates requirement, TrueStory immediately drafts test cases for QA review</li>
+                            <li><strong>One-click approval:</strong> QA can approve AI tests with edits instead of starting from scratch</li>
+                            <li><strong>Learning mode:</strong> AI learns from QA edits to improve future suggestions</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="outcome success">
+                    <div class="outcome-title">✨ Best Practice Recommendation</div>
+                    <strong>Ideal Team Setup:</strong>
+                    <ol style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                        <li>PO creates requirement → TrueStory auto-generates test draft with AI</li>
+                        <li>QA gets notification with AI-drafted tests (not empty slate)</li>
+                        <li>QA reviews/edits AI tests (2-5 min instead of 45 min)</li>
+                        <li>Requirement goes GREEN quickly</li>
+                        <li>Dev picks up GREEN requirements only (policy enforced)</li>
+                        <li>PR notifications instant to QA</li>
+                        <li>Fast feedback loop, no reactive testing</li>
+                    </ol>
+                </div>`,
+                choices: []
+            },
+
+            additional_scenarios_menu: {
+                step: 'merge',
+                text: `<div class="outcome info">
+                    <div class="outcome-title">🎭 Additional Scenarios to Explore</div>
+                    
+                    <p style="margin-bottom: 1.5rem;">We've identified several potential weak spots. Which scenario would you like to explore next?</p>
+                </div>`,
+                choices: [
+                    {
+                        text: 'QA on Vacation',
+                        desc: 'What happens when Maria is out for a week?',
+                        next: 'scenario_qa_vacation'
+                    },
+                    {
+                        text: 'Conflicting Test Interpretations',
+                        desc: 'Dev and QA disagree on expected behavior',
+                        next: 'scenario_conflict'
+                    },
+                    {
+                        text: 'Urgent Hotfix',
+                        desc: 'Production bug needs immediate fix, bypass QA?',
+                        next: 'scenario_hotfix'
+                    },
+                    {
+                        text: 'Multiple PRs Waiting',
+                        desc: 'QA has 5 PRs in queue, which to test first?',
+                        next: 'scenario_queue'
+                    }
+                ]
+            },
+
+            scenario_qa_vacation: {
+                text: `<div class="persona">
+                    <div class="persona-icon">🏖️</div>
+                    <div class="persona-info">
+                        <h3>Maria - Out of Office</h3>
+                        <p>On vacation from Monday-Friday</p>
+                    </div>
+                </div>
+                
+                <div class="weak-spot">
+                    <div class="weak-spot-title">⚠️ WEAK SPOT: Single Point of Failure</div>
+                    <strong>The Problem:</strong>
+                    <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                        <li>Maria is the only QA familiar with 2FA requirements</li>
+                        <li>PRs pile up while she's away</li>
+                        <li>Devs are blocked or merge without proper QA</li>
+                        <li>Sprint velocity drops dramatically</li>
+                    </ul>
+                </div>
+                
+                <strong>Potential TrueStory Solutions:</strong>
+                
+                <div class="outcome success">
+                    <div class="outcome-title">💡 Solution 1: Backup QA Assignment</div>
+                    <ul style="padding-left: 1.5rem;">
+                        <li>Automatically reassign Maria's notifications to backup QA (Tom)</li>
+                        <li>Tom sees Maria's test cases + AI-generated scenarios</li>
+                        <li>Complete context transfer - no knowledge loss</li>
+                        <li>Can approve/reject with same confidence</li>
+                    </ul>
+                </div>
+                
+                <div class="outcome success">
+                    <div class="outcome-title">💡 Solution 2: Automated Pre-Checks</div>
+                    <ul style="padding-left: 1.5rem;">
+                        <li>If all 15 automated tests pass</li>
+                        <li>Code coverage >85%</li>
+                        <li>No linting errors</li>
+                        <li>→ TrueStory can "soft approve" with flag for post-vacation review</li>
+                    </ul>
+                </div>
+                
+                <div class="outcome success">
+                    <div class="outcome-title">💡 Solution 3: Cross-Training Dashboard</div>
+                    <ul style="padding-left: 1.5rem;">
+                        <li>Show which requirements each QA is familiar with</li>
+                        <li>Encourage knowledge sharing across team</li>
+                        <li>AI suggests which backup QA is best suited for each PR</li>
+                    </ul>
+                </div>`,
+                choices: []
+            },
+
+            scenario_conflict: {
+                text: `<div class="chat-message">
+                    <div class="chat-sender">Alex (Developer)</div>
+                    <div class="chat-text">"I implemented SMS fallback to send codes. But Maria is rejecting the PR saying codes should expire after 10 minutes. The requirement doesn't specify expiration!"</div>
+                </div>
+                
+                <div class="chat-message">
+                    <div class="chat-sender">Maria (QA)</div>
+                    <div class="chat-text">"It's a security best practice! OTP codes should ALWAYS expire. This is implied in 2FA requirements."</div>
+                </div>
+                
+                <div class="weak-spot">
+                    <div class="weak-spot-title">⚠️ WEAK SPOT: Ambiguous Requirements</div>
+                    <strong>The Problem:</strong>
+                    <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                        <li>Requirement didn't specify SMS code expiration</li>
+                        <li>Dev assumed no expiration needed</li>
+                        <li>QA expected it as "obvious security practice"</li>
+                        <li>Conflict discovered at PR stage (too late)</li>
+                        <li>Wastes 30 minutes of discussion + 1 hour of rework</li>
+                    </ul>
+                </div>
+                
+                <strong>How TrueStory AI Could Have Prevented This:</strong>
+                
+                <div class="outcome success">
+                    <div class="outcome-title">✨ AI-Powered Requirement Enhancement</div>
+                    When Sarah (PO) wrote the original requirement, TrueStory AI could have flagged:
+                    <br><br>
+                    <div class="notification">
+                        <div class="notification-header">
+                            <span class="notification-icon">💡</span>
+                            <span class="notification-title">AI Suggestion</span>
+                        </div>
+                        <div class="notification-body">
+                            Your requirement mentions "SMS fallback" but doesn't specify:
+                            <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                                <li>Code expiration time (recommended: 10 minutes)</li>
+                                <li>Rate limiting (recommended: 3 attempts/hour)</li>
+                                <li>Code length (recommended: 6 digits)</li>
+                            </ul>
+                            Add these details to prevent ambiguity?
+                        </div>
+                    </div>
+                    <br>
+                    <strong>Result:</strong> Conflict prevented before dev even starts coding!
+                </div>
+                
+                <div class="outcome success">
+                    <div class="outcome-title">💡 Comment Resolution Workflow</div>
+                    <ul style="padding-left: 1.5rem;">
+                        <li>Maria can flag requirement as "needs clarification"</li>
+                        <li>Auto-notify PO for decision</li>
+                        <li>Block dev work until clarified</li>
+                        <li>Update requirement + all linked tests</li>
+                        <li>Version history shows evolution</li>
+                    </ul>
+                </div>`,
+                choices: []
+            },
+
+            scenario_hotfix: {
+                text: `<div class="outcome danger">
+                    <div class="outcome-title">🚨 PRODUCTION EMERGENCY</div>
+                    <strong>Friday 4:45 PM:</strong> Login is broken for all users!<br>
+                    <strong>Root cause:</strong> Third-party auth service changed their API<br>
+                    <strong>Fix needed:</strong> Update API endpoint URL (2-line change)<br>
+                    <strong>ETA:</strong> 10 minutes to fix and deploy
+                </div>
+                
+                <div class="persona">
+                    <div class="persona-icon">🔥</div>
+                    <div class="persona-info">
+                        <h3>Alex - Firefighting Mode</h3>
+                        <p>Needs to deploy NOW, but TrueStory requires QA approval...</p>
+                    </div>
+                </div>
+                
+                <div class="weak-spot">
+                    <div class="weak-spot-title">⚠️ WEAK SPOT: Emergency Override</div>
+                    <strong>The Dilemma:</strong>
+                    <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                        <li>Following TRACE process = 30+ min QA validation</li>
+                        <li>Every minute costs $1000 in lost revenue</li>
+                        <li>Fix is trivial (URL change)</li>
+                        <li>But bypassing QA sets bad precedent</li>
+                    </ul>
+                </div>
+                
+                <strong>TrueStory Emergency Protocol Options:</strong>
+                
+                <div class="outcome warning">
+                    <div class="outcome-title">⚡ Option 1: Emergency Override</div>
+                    <ul style="padding-left: 1.5rem;">
+                        <li>Manager can approve "emergency bypass"</li>
+                        <li>Requires written justification</li>
+                        <li>Logged in audit trail</li>
+                        <li>Post-incident QA review required within 24h</li>
+                        <li>If bugs found, team discusses process improvement</li>
+                    </ul>
+                    <strong>Trade-off:</strong> Speed vs. process integrity
+                </div>
+                
+                <div class="outcome success">
+                    <div class="outcome-title">✓ Option 2: Fast-Track QA</div>
+                    <ul style="padding-left: 1.5rem;">
+                        <li>Mark PR as "EMERGENCY" (red flag icon)</li>
+                        <li>Skip full test suite, run only smoke tests</li>
+                        <li>QA does 5-minute validation</li>
+                        <li>Deploy to production</li>
+                        <li>Full QA review scheduled for Monday</li>
+                    </ul>
+                    <strong>Trade-off:</strong> Minimal delay, maintains some quality gate
+                </div>
+                
+                <div class="outcome info">
+                    <div class="outcome-title">💡 Option 3: Automated Emergency Path</div>
+                    <ul style="padding-left: 1.5rem;">
+                        <li>If change is <5 lines in specific "safe" files (config, constants)</li>
+                        <li>AND all automated tests pass</li>
+                        <li>AND code coverage unchanged</li>
+                        <li>→ Auto-approve with "emergency audit" flag</li>
+                        <li>Full QA reviews next business day</li>
+                    </ul>
+                    <strong>Trade-off:</strong> Automated risk assessment
+                </div>
+                
+                <div class="weak-spot">
+                    <div class="weak-spot-title">📊 Track Emergency Metrics</div>
+                    <strong>TrueStory should track:</strong>
+                    <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                        <li>How many emergency overrides per month</li>
+                        <li>How many caused bugs (validation)</li>
+                        <li>Average time saved vs. risk created</li>
+                        <li>Use data to improve emergency protocols</li>
+                    </ul>
+                </div>`,
+                choices: []
+            },
+
+            scenario_queue: {
+                text: `<div class="persona">
+                    <div class="persona-icon">😰</div>
+                    <div class="persona-info">
+                        <h3>Maria - Overwhelmed</h3>
+                        <p>5 PRs waiting for validation, all marked "urgent"</p>
+                    </div>
+                </div>
+                
+                <div class="notification">
+                    <div class="notification-header">
+                        <span class="notification-icon">🔔</span>
+                        <span class="notification-title">5 PRs Awaiting QA</span>
+                    </div>
+                    <div class="notification-body">
+                        PR #401: Payment gateway integration (GREEN, 20 tests)<br>
+                        PR #402: Email notification templates (YELLOW, 5 tests)<br>
+                        PR #403: Search performance optimization (GREEN, 12 tests)<br>
+                        PR #404: Bug fix - date picker (RED, 2 tests)<br>
+                        PR #405: API rate limiting (GREEN, 15 tests)
+                    </div>
+                </div>
+                
+                <div class="weak-spot">
+                    <div class="weak-spot-title">⚠️ WEAK SPOT: Prioritization Paralysis</div>
+                    <strong>The Problem:</strong>
+                    <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                        <li>Maria doesn't know which to test first</li>
+                        <li>All devs think theirs is most urgent</li>
+                        <li>No objective prioritization system</li>
+                        <li>Maria ends up testing in random order or whoever asks loudest</li>
+                    </ul>
+                </div>
+                
+                <strong>TrueStory Smart Queue Management:</strong>
+                
+                <div class="outcome success">
+                    <div class="outcome-title">🎯 AI-Powered Priority Scoring</div>
+                    TrueStory calculates priority score based on:
+                    <div style="margin: 1rem 0;">
+                        <strong>PR #404 (Bug Fix):</strong> Priority Score: 95/100
+                        <ul style="padding-left: 1.5rem; font-size: 0.9rem;">
+                            <li>+30: Bug affecting users in production</li>
+                            <li>+20: Small change (low testing effort)</li>
+                            <li>+25: Blocks customer demo tomorrow</li>
+                            <li>+20: RED coverage (needs attention)</li>
+                        </ul>
+                        
+                        <strong>PR #401 (Payment):</strong> Priority Score: 85/100
+                        <ul style="padding-left: 1.5rem; font-size: 0.9rem;">
+                            <li>+40: Critical business feature</li>
+                            <li>+20: GREEN coverage (well-tested)</li>
+                            <li>+15: On critical path for release</li>
+                            <li>+10: Complex (2h testing estimate)</li>
+                        </ul>
+                        
+                        <strong>PR #403 (Search):</strong> Priority Score: 60/100
+                        <ul style="padding-left: 1.5rem; font-size: 0.9rem;">
+                            <li>+25: Performance improvement</li>
+                            <li>+20: GREEN coverage</li>
+                            <li>+15: No user-facing changes</li>
+                        </ul>
+                    </div>
+                    <strong>Suggested order:</strong> #404 → #401 → #405 → #403 → #402
+                </div>
+                
+                <div class="outcome success">
+                    <div class="outcome-title">⏱️ Time Estimation</div>
+                    <ul style="padding-left: 1.5rem;">
+                        <li>PR #404: ~15 min (bug fix, 2 tests)</li>
+                        <li>PR #401: ~2 hours (payments, complex)</li>
+                        <li>PR #405: ~1 hour (API, well-tested)</li>
+                        <li>PR #403: ~45 min (performance)</li>
+                        <li>PR #402: ~30 min (templates)</li>
+                    </ul>
+                    <br>
+                    <strong>Maria can plan her day:</strong> Knock out #404 first (quick win), then tackle #401 before lunch, batch the rest in afternoon.
+                </div>
+                
+                <div class="outcome success">
+                    <div class="outcome-title">👥 Load Balancing</div>
+                    If Maria is overloaded:
+                    <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                        <li>TrueStory suggests assigning #402 & #403 to Tom (backup QA)</li>
+                        <li>Reasons: Lower complexity, GREEN coverage, Tom has domain knowledge</li>
+                        <li>Auto-notification sent to Tom with context</li>
+                        <li>Maria focuses on critical items (#404, #401)</li>
+                    </ul>
+                </div>`,
+                choices: []
+            }
+        };
+
+        function updateTimeline(step) {
+            document.querySelectorAll('.timeline-step').forEach(el => {
+                el.classList.remove('active', 'completed');
+            });
+
+            const steps = ['po', 'qa-test', 'dev', 'pr', 'qa-validate', 'merge'];
+            const currentIndex = steps.indexOf(step);
+
+            steps.forEach((s, i) => {
+                const el = document.querySelector(`[data-step="${s}"]`);
+                if (i < currentIndex) {
+                    el.classList.add('completed');
+                } else if (i === currentIndex) {
+                    el.classList.add('active');
+                }
+            });
+        }
+
+        function renderScenario(scenarioKey) {
+            const scenario = scenarios[scenarioKey];
+            const gameArea = document.getElementById('game-area');
+
+            if (scenario.step) {
+                updateTimeline(scenario.step);
+            }
+
+            let html = `<div class="game-card">`;
+
+            if (scenario.time) {
+                html += `<div class="clock">🕐 ${scenario.time}</div>`;
+            }
+
+            if (scenario.persona) {
+                html += `
+                    <div class="persona">
+                        <div class="persona-icon">${scenario.persona.icon}</div>
+                        <div class="persona-info">
+                            <h3>${scenario.persona.name}</h3>
+                            <p>${scenario.persona.role}</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += `<div class="scenario-text">${scenario.text}</div>`;
+
+            if (scenario.choices && scenario.choices.length > 0) {
+                html += `<div class="choices">`;
+                scenario.choices.forEach(choice => {
+                    html += `
+                        <button class="choice-btn" onclick="makeChoice('${choice.next}')">
+                            <div class="choice-title">${choice.text}</div>
+                            <div class="choice-desc">${choice.desc}</div>
+                        </button>
+                    `;
+                });
+                html += `</div>`;
+            } else {
+                html += `
+                    <button class="restart-btn" onclick="restart()">
+                        🔄 Restart Simulation
+                    </button>
+                `;
+            }
+
+            html += `</div>`;
+            gameArea.innerHTML = html;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function makeChoice(nextScenario) {
+            gameState.decisions.push(nextScenario);
+            renderScenario(nextScenario);
+        }
+
+        function restart() {
+            gameState.decisions = [];
+            gameState.currentStep = 'po';
+            renderScenario('po_creates_req');
+        }
+
+        // Initialize
+        renderScenario('po_creates_req');
+    </script>
+</body>
+</html>

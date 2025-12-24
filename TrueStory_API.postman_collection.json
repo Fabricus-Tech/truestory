@@ -1,0 +1,302 @@
+{
+	"info": {
+		"_postman_id": "truestory-api-collection",
+		"name": "TrueStory API",
+		"description": "Complete API collection for TrueStory QA Orchestration Platform",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/health",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"health"
+					]
+				},
+				"description": "Check if the server is running"
+			},
+			"response": []
+		},
+		{
+			"name": "Submit PR",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"commitTitle\": \"feat: Implement 2FA authentication\",\n  \"commitDescription\": \"Added two-factor authentication with QR codes and SMS fallback. This implements REQ-223 and addresses security concerns.\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/submitPR",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"submitPR"
+					]
+				},
+				"description": "Submit a PR from CI/CD pipeline. Extracts requirement IDs (e.g., REQ-223) from commit description and creates a test session."
+			},
+			"response": []
+		},
+		{
+			"name": "Submit PR - Multiple Requirements",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"commitTitle\": \"feat: Authentication improvements\",\n  \"commitDescription\": \"Implemented 2FA (REQ-223) and improved password reset flow (REQ-224). Both features are now production-ready.\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/submitPR",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"submitPR"
+					]
+				},
+				"description": "Example with multiple requirement IDs in one PR"
+			},
+			"response": []
+		},
+		{
+			"name": "Answer PR - All Passed",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"results\": {\n    \"REQ-223\": {\n      \"TC-001\": {\n        \"status\": \"PASS\",\n        \"message\": \"2FA enabled successfully in user settings\"\n      },\n      \"TC-002\": {\n        \"status\": \"PASS\",\n        \"message\": \"QR code generated correctly for authenticator app\"\n      },\n      \"TC-003\": {\n        \"status\": \"PASS\",\n        \"message\": \"Valid 6-digit code authentication working perfectly\"\n      }\n    }\n  }\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/answerPR",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"answerPR"
+					]
+				},
+				"description": "QA answers with all tests passed. Returns HTTP 200 OK with verdict: PASS"
+			},
+			"response": []
+		},
+		{
+			"name": "Answer PR - With Warnings",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"results\": {\n    \"REQ-223\": {\n      \"TC-001\": {\n        \"status\": \"PASS\",\n        \"message\": \"2FA enabled successfully\"\n      },\n      \"TC-002\": {\n        \"status\": \"WARNING\",\n        \"message\": \"QR code works but needs better contrast for accessibility\"\n      },\n      \"TC-003\": {\n        \"status\": \"PASS\",\n        \"message\": \"Authentication works correctly\"\n      },\n      \"TC-004\": {\n        \"status\": \"WARNING\",\n        \"message\": \"Error message shown but could be more descriptive\"\n      },\n      \"TC-005\": {\n        \"status\": \"PASS\",\n        \"message\": \"Recovery codes generated correctly\"\n      }\n    }\n  }\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/answerPR",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"answerPR"
+					]
+				},
+				"description": "QA answers with some warnings. Returns HTTP 202 ACCEPTED with verdict: WARNING"
+			},
+			"response": []
+		},
+		{
+			"name": "Answer PR - With Failures",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"results\": {\n    \"REQ-223\": {\n      \"TC-001\": {\n        \"status\": \"PASS\",\n        \"message\": \"2FA enabled successfully\"\n      },\n      \"TC-002\": {\n        \"status\": \"FAIL\",\n        \"message\": \"QR code not displaying - 404 error on image endpoint\"\n      },\n      \"TC-003\": {\n        \"status\": \"FAIL\",\n        \"message\": \"Valid 6-digit codes are being rejected - authentication broken\"\n      },\n      \"TC-004\": {\n        \"status\": \"PASS\",\n        \"message\": \"Error handling works for invalid codes\"\n      }\n    }\n  }\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/answerPR",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"answerPR"
+					]
+				},
+				"description": "QA answers with failures. Returns HTTP 406 NOT ACCEPTABLE with verdict: FAIL"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Pending Sessions",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/sessions/pending",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"sessions",
+						"pending"
+					]
+				},
+				"description": "Get all test sessions awaiting QA validation. Returns full details including requirements and test cases. Used by Flutter app to show pending PRs."
+			},
+			"response": []
+		},
+		{
+			"name": "Get All Sessions",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/sessions",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"sessions"
+					]
+				},
+				"description": "Get all test sessions (PENDING, IN_PROGRESS, COMPLETED)"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Specific Session",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/sessions/{{session_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"sessions",
+						"{{session_id}}"
+					]
+				},
+				"description": "Get details for a specific test session by sessionId"
+			},
+			"response": []
+		},
+		{
+			"name": "Get All Requirements",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/requirements",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"requirements"
+					]
+				},
+				"description": "Get all requirements in the system (for admin/setup)"
+			},
+			"response": []
+		},
+		{
+			"name": "Get All Test Cases",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/test-cases",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"test-cases"
+					]
+				},
+				"description": "Get all test cases in the system (for admin/setup)"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "session_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

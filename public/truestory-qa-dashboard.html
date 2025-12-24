@@ -1,0 +1,2060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrueStory Project Dashboard</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a0e14 0%, #1a2332 100%);
+            color: #e6edf3;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid #30363d;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            color: #00ff9d;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #8b949e;
+            font-size: 1.1rem;
+        }
+
+        .api-config {
+            background: #1a2332;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            border: 2px solid #30363d;
+        }
+
+        .api-config input {
+            width: 100%;
+            padding: 0.75rem;
+            background: #0a0e14;
+            border: 2px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 1rem;
+        }
+
+        .api-config input:focus {
+            outline: none;
+            border-color: #00ff9d;
+        }
+
+        .refresh-btn {
+            background: #00ff9d;
+            color: #0a0e14;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 255, 157, 0.3);
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            background: rgba(255, 184, 0, 0.2);
+            color: #ffb800;
+        }
+
+        .status-completed {
+            background: rgba(0, 255, 157, 0.2);
+            color: #00ff9d;
+        }
+
+        .sessions-list {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .session-card {
+            background: #1a2332;
+            border: 2px solid #30363d;
+            border-radius: 12px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .session-card:hover {
+            border-color: #00ff9d;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 255, 157, 0.2);
+        }
+
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+        }
+
+        .session-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #00ff9d;
+            margin-bottom: 0.5rem;
+        }
+
+        .session-meta {
+            color: #8b949e;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .requirements-section {
+            margin-top: 1.5rem;
+        }
+
+        .requirement {
+            background: rgba(0, 255, 157, 0.05);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #00ff9d;
+        }
+
+        .requirement-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .req-id {
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            color: #00ff9d;
+        }
+
+        .test-cases {
+            margin-top: 1rem;
+        }
+
+        .test-case {
+            background: #0a0e14;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .test-case-title {
+            color: #e6edf3;
+            font-size: 0.95rem;
+        }
+
+        .test-case-id {
+            font-family: 'Courier New', monospace;
+            color: #8b949e;
+            font-size: 0.85rem;
+            margin-right: 0.5rem;
+        }
+
+        .severity-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .severity-high {
+            background: rgba(255, 184, 0, 0.2);
+            color: #ffb800;
+        }
+
+        .severity-critical {
+            background: rgba(255, 56, 96, 0.2);
+            color: #ff3860;
+        }
+
+        .severity-medium {
+            background: rgba(100, 149, 237, 0.2);
+            color: #6495ed;
+        }
+
+        .severity-low {
+            background: rgba(128, 128, 128, 0.2);
+            color: #999;
+        }
+
+        .test-btn {
+            background: #00ff9d;
+            color: #0a0e14;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.95rem;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 255, 157, 0.3);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 2rem;
+        }
+
+        .modal {
+            background: #1a2332;
+            border: 2px solid #00ff9d;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            color: #00ff9d;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: #8b949e;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        .close-btn:hover {
+            color: #00ff9d;
+        }
+
+        .test-progress {
+            margin-bottom: 2rem;
+        }
+
+        .progress-bar {
+            background: #0a0e14;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-fill {
+            background: #00ff9d;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            color: #8b949e;
+            font-size: 0.9rem;
+        }
+
+        .test-case-testing {
+            background: rgba(0, 255, 157, 0.05);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 2px solid #00ff9d;
+            margin-bottom: 2rem;
+        }
+
+        .test-case-testing h3 {
+            color: #00ff9d;
+            margin-bottom: 1rem;
+        }
+
+        .test-case-testing p {
+            color: #8b949e;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .test-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .verdict-btn {
+            padding: 1rem;
+            border: 2px solid;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: transparent;
+            font-size: 1rem;
+        }
+
+        .verdict-btn.pass {
+            border-color: #00ff9d;
+            color: #00ff9d;
+        }
+
+        .verdict-btn.pass:hover {
+            background: #00ff9d;
+            color: #0a0e14;
+        }
+
+        .verdict-btn.warning {
+            border-color: #ffb800;
+            color: #ffb800;
+        }
+
+        .verdict-btn.warning:hover {
+            background: #ffb800;
+            color: #0a0e14;
+        }
+
+        .verdict-btn.fail {
+            border-color: #ff3860;
+            color: #ff3860;
+        }
+
+        .verdict-btn.fail:hover {
+            background: #ff3860;
+            color: #0a0e14;
+        }
+
+        .comment-input {
+            width: 100%;
+            padding: 0.75rem;
+            background: #0a0e14;
+            border: 2px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 1rem;
+            margin-top: 1rem;
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        .comment-input:focus {
+            outline: none;
+            border-color: #00ff9d;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .nav-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px solid #30363d;
+            border-radius: 6px;
+            background: transparent;
+            color: #e6edf3;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            border-color: #00ff9d;
+            color: #00ff9d;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            background: #00ff9d;
+            color: #0a0e14;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 2rem;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 255, 157, 0.3);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #8b949e;
+        }
+
+        .empty-state h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #8b949e;
+        }
+
+        .error {
+            background: rgba(255, 56, 96, 0.1);
+            border: 2px solid #ff3860;
+            color: #ff3860;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .login-card {
+            background: #1a2332;
+            border: 2px solid #30363d;
+            border-radius: 16px;
+            padding: 3rem;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-card h1 {
+            color: #00ff9d;
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-card .subtitle {
+            color: #8b949e;
+            margin-bottom: 2rem;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .login-form input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: #0a0e14;
+            border: 2px solid #30363d;
+            border-radius: 8px;
+            color: #e6edf3;
+            font-size: 1rem;
+        }
+
+        .login-form input:focus {
+            outline: none;
+            border-color: #00ff9d;
+        }
+
+        .login-form input::placeholder {
+            color: #8b949e;
+        }
+
+        .login-btn {
+            background: #00ff9d;
+            color: #0a0e14;
+            border: none;
+            padding: 0.875rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 255, 157, 0.3);
+        }
+
+        .login-error {
+            background: rgba(255, 56, 96, 0.1);
+            border: 1px solid #ff3860;
+            color: #ff3860;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .logout-btn {
+            background: transparent;
+            border: 1px solid #8b949e;
+            color: #8b949e;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            border-color: #ff3860;
+            color: #ff3860;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #30363d;
+        }
+
+        .tab {
+            padding: 1rem 2rem;
+            background: transparent;
+            border: none;
+            color: #8b949e;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab:hover {
+            color: #e6edf3;
+        }
+
+        .tab.active {
+            color: #00ff9d;
+            border-bottom-color: #00ff9d;
+        }
+
+        .tab-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+            margin-left: 8px;
+            background: #30363d;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #8b949e;
+        }
+
+        .tab.active .tab-badge {
+            background: rgba(0, 255, 157, 0.2);
+            color: #00ff9d;
+        }
+
+        .requirements-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .requirements-header h2 {
+            color: #e6edf3;
+            font-size: 1.3rem;
+        }
+
+        .add-btn {
+            background: #00ff9d;
+            color: #0a0e14;
+            border: none;
+            padding: 0.625rem 1.25rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 255, 157, 0.3);
+        }
+
+        .requirement-card {
+            background: #1a2332;
+            border: 2px solid #30363d;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .requirement-card:hover {
+            border-color: #00ff9d;
+        }
+
+        .requirement-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .requirement-card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #00ff9d;
+            margin-bottom: 0.25rem;
+        }
+
+        .requirement-card-id {
+            font-family: 'Courier New', monospace;
+            color: #8b949e;
+            font-size: 0.85rem;
+        }
+
+        .requirement-card-description {
+            color: #8b949e;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .requirement-card-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .edit-btn, .delete-btn {
+            padding: 0.4rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .edit-btn {
+            background: transparent;
+            border: 1px solid #8b949e;
+            color: #8b949e;
+        }
+
+        .edit-btn:hover {
+            border-color: #00ff9d;
+            color: #00ff9d;
+        }
+
+        .delete-btn {
+            background: transparent;
+            border: 1px solid #8b949e;
+            color: #8b949e;
+        }
+
+        .delete-btn:hover {
+            border-color: #ff3860;
+            color: #ff3860;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: #8b949e;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: #0a0e14;
+            border: 2px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #00ff9d;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        .cancel-btn {
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: 2px solid #30363d;
+            border-radius: 6px;
+            color: #8b949e;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .cancel-btn:hover {
+            border-color: #8b949e;
+            color: #e6edf3;
+        }
+
+        .save-btn {
+            padding: 0.75rem 1.5rem;
+            background: #00ff9d;
+            border: none;
+            border-radius: 6px;
+            color: #0a0e14;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 255, 157, 0.3);
+        }
+
+        .save-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            background: #0a0e14;
+            border: 2px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 1rem;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: #00ff9d;
+        }
+
+        .form-group select option {
+            background: #0a0e14;
+            color: #e6edf3;
+        }
+
+        .test-case-card {
+            background: #1a2332;
+            border: 2px solid #30363d;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .test-case-card:hover {
+            border-color: #00ff9d;
+        }
+
+        .test-case-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+
+        .test-case-card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #e6edf3;
+            margin-bottom: 0.25rem;
+        }
+
+        .test-case-card-id {
+            font-family: 'Courier New', monospace;
+            color: #00ff9d;
+            font-size: 0.85rem;
+        }
+
+        .test-case-card-meta {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .test-case-card-req {
+            font-size: 0.85rem;
+            color: #8b949e;
+        }
+
+        .test-case-card-req span {
+            color: #00ff9d;
+            font-family: 'Courier New', monospace;
+        }
+
+        .group-card {
+            background: #1a2332;
+            border: 2px solid #30363d;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .group-card:hover {
+            border-color: #00ff9d;
+        }
+
+        .group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .group-header:hover {
+            background: rgba(0, 255, 157, 0.05);
+        }
+
+        .group-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .group-toggle {
+            color: #8b949e;
+            font-size: 0.9rem;
+            transition: transform 0.3s ease;
+        }
+
+        .group-toggle.expanded {
+            transform: rotate(90deg);
+        }
+
+        .group-req-id {
+            font-family: 'Courier New', monospace;
+            color: #00ff9d;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .group-title {
+            color: #e6edf3;
+            font-size: 1rem;
+        }
+
+        .group-count {
+            background: #30363d;
+            color: #8b949e;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .group-content {
+            border-top: 1px solid #30363d;
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+        }
+
+        .group-content.expanded {
+            max-height: 2000px;
+            padding: 1rem 1.5rem;
+        }
+
+        .group-test-case {
+            background: #0a0e14;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .group-test-case:last-child {
+            margin-bottom: 0;
+        }
+
+        .group-test-case-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .group-test-case-id {
+            font-family: 'Courier New', monospace;
+            color: #00ff9d;
+            font-size: 0.85rem;
+        }
+
+        .group-test-case-title {
+            color: #e6edf3;
+            font-size: 0.95rem;
+            margin-top: 0.25rem;
+        }
+
+        .group-test-case-desc {
+            color: #8b949e;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .group-test-case-meta {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+            align-items: center;
+        }
+
+        .preview-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 255, 157, 0.1);
+            border: 1px solid #00ff9d;
+            border-radius: 6px;
+            color: #00ff9d;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .preview-link:hover {
+            background: rgba(0, 255, 157, 0.2);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const VALID_USERNAME = 'ts_admin';
+        const VALID_PASSWORD = 'Sifrica123';
+
+        function LoginForm({ onLogin }) {
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (username === VALID_USERNAME && password === VALID_PASSWORD) {
+                    sessionStorage.setItem('ts_authenticated', 'true');
+                    onLogin();
+                } else {
+                    setError('Invalid username or password');
+                }
+            };
+
+            return (
+                <div className="login-container">
+                    <div className="login-card">
+                        <h1>TrueStory</h1>
+                        <p className="subtitle">Project Dashboard Login</p>
+                        <form className="login-form" onSubmit={handleSubmit}>
+                            <input
+                                type="text"
+                                placeholder="Username"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                autoComplete="username"
+                            />
+                            <input
+                                type="password"
+                                placeholder="Password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                autoComplete="current-password"
+                            />
+                            {error && <div className="login-error">{error}</div>}
+                            <button type="submit" className="login-btn">Sign In</button>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        const API_URL = 'https://api.true-story.tech';
+
+        function App() {
+            const [isAuthenticated, setIsAuthenticated] = useState(() => {
+                return sessionStorage.getItem('ts_authenticated') === 'true';
+            });
+            const [activeTab, setActiveTab] = useState('sessions');
+            const [sessions, setSessions] = useState([]);
+            const [requirements, setRequirements] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+            const [testingSession, setTestingSession] = useState(null);
+            const [currentTestIndex, setCurrentTestIndex] = useState(0);
+            const [testResults, setTestResults] = useState({});
+            const [currentComment, setCurrentComment] = useState('');
+            const [editingRequirement, setEditingRequirement] = useState(null);
+            const [showRequirementModal, setShowRequirementModal] = useState(false);
+            const [reqForm, setReqForm] = useState({ reqId: '', title: '', description: '' });
+            const [saving, setSaving] = useState(false);
+            const [testCases, setTestCases] = useState([]);
+            const [editingTestCase, setEditingTestCase] = useState(null);
+            const [showTestCaseModal, setShowTestCaseModal] = useState(false);
+            const [tcForm, setTcForm] = useState({ testId: '', title: '', description: '', severity: 'MEDIUM', reqId: '' });
+            const [expandedGroups, setExpandedGroups] = useState({});
+
+            const toggleGroup = (reqId) => {
+                setExpandedGroups(prev => ({ ...prev, [reqId]: !prev[reqId] }));
+            };
+
+            const extractPreviewUrl = (commitDescription) => {
+                if (!commitDescription) return null;
+                const match = commitDescription.match(/Preview:\s*(https?:\/\/[^\s]+)\s*$/i);
+                return match ? match[1] : null;
+            };
+
+            const getTestCasesGroupedByRequirement = () => {
+                const groups = [];
+                requirements.forEach(req => {
+                    if (req.testCases && req.testCases.length > 0) {
+                        const reqTestCases = testCases.filter(tc => req.testCases.includes(tc.testId));
+                        if (reqTestCases.length > 0) {
+                            groups.push({
+                                requirement: req,
+                                testCases: reqTestCases
+                            });
+                        }
+                    }
+                });
+                return groups;
+            };
+
+            const handleLogout = () => {
+                sessionStorage.removeItem('ts_authenticated');
+                setIsAuthenticated(false);
+            };
+
+            const fetchPendingSessions = async () => {
+                setLoading(true);
+                setError(null);
+                try {
+                    const response = await fetch(`${API_URL}/api/sessions/pending`);
+                    if (!response.ok) throw new Error('Failed to fetch sessions');
+                    const data = await response.json();
+                    setSessions(data.sessions || []);
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const fetchRequirements = async () => {
+                setLoading(true);
+                setError(null);
+                try {
+                    const response = await fetch(`${API_URL}/api/requirements`);
+                    if (!response.ok) throw new Error('Failed to fetch requirements');
+                    const data = await response.json();
+                    setRequirements(data.requirements || data || []);
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const openAddRequirement = () => {
+                setEditingRequirement(null);
+                setReqForm({ reqId: '', title: '', description: '' });
+                setShowRequirementModal(true);
+            };
+
+            const openEditRequirement = (req) => {
+                setEditingRequirement(req);
+                setReqForm({ reqId: req.reqId, title: req.title, description: req.description || '' });
+                setShowRequirementModal(true);
+            };
+
+            const closeRequirementModal = () => {
+                setShowRequirementModal(false);
+                setEditingRequirement(null);
+                setReqForm({ reqId: '', title: '', description: '' });
+            };
+
+            const saveRequirement = async () => {
+                setSaving(true);
+                try {
+                    const method = editingRequirement ? 'PUT' : 'POST';
+                    const url = editingRequirement
+                        ? `${API_URL}/api/requirements/${editingRequirement.reqId}`
+                        : `${API_URL}/api/requirements`;
+
+                    const response = await fetch(url, {
+                        method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(reqForm)
+                    });
+
+                    if (!response.ok) throw new Error('Failed to save requirement');
+
+                    closeRequirementModal();
+                    fetchRequirements();
+                } catch (err) {
+                    alert(`Error: ${err.message}`);
+                } finally {
+                    setSaving(false);
+                }
+            };
+
+            const deleteRequirement = async (reqId) => {
+                if (!confirm(`Delete requirement ${reqId}?`)) return;
+
+                try {
+                    const response = await fetch(`${API_URL}/api/requirements/${reqId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (!response.ok) throw new Error('Failed to delete requirement');
+
+                    fetchRequirements();
+                } catch (err) {
+                    alert(`Error: ${err.message}`);
+                }
+            };
+
+            const fetchTestCases = async () => {
+                setLoading(true);
+                setError(null);
+                try {
+                    const [tcResponse, reqResponse] = await Promise.all([
+                        fetch(`${API_URL}/api/test-cases`),
+                        fetch(`${API_URL}/api/requirements`)
+                    ]);
+                    if (!tcResponse.ok) throw new Error('Failed to fetch test cases');
+                    const tcData = await tcResponse.json();
+                    const reqData = await reqResponse.json();
+                    setTestCases(tcData.testCases || tcData || []);
+                    setRequirements(reqData.requirements || reqData || []);
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const findRequirementForTestCase = (testId) => {
+                return requirements.find(req => req.testCases && req.testCases.includes(testId));
+            };
+
+            const openAddTestCase = () => {
+                setEditingTestCase(null);
+                setTcForm({ testId: '', title: '', description: '', severity: 'MEDIUM', reqId: '' });
+                setShowTestCaseModal(true);
+            };
+
+            const openEditTestCase = (tc) => {
+                const req = findRequirementForTestCase(tc.testId);
+                setEditingTestCase(tc);
+                setTcForm({
+                    testId: tc.testId,
+                    title: tc.title,
+                    description: tc.description || '',
+                    severity: tc.severity || 'MEDIUM',
+                    reqId: req?.reqId || ''
+                });
+                setShowTestCaseModal(true);
+            };
+
+            const closeTestCaseModal = () => {
+                setShowTestCaseModal(false);
+                setEditingTestCase(null);
+                setTcForm({ testId: '', title: '', description: '', severity: 'MEDIUM', reqId: '' });
+            };
+
+            const saveTestCase = async () => {
+                setSaving(true);
+                try {
+                    if (editingTestCase) {
+                        const response = await fetch(`${API_URL}/api/test-cases/${editingTestCase.testId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                title: tcForm.title,
+                                description: tcForm.description,
+                                severity: tcForm.severity
+                            })
+                        });
+                        if (!response.ok) throw new Error('Failed to update test case');
+                    } else {
+                        const response = await fetch(`${API_URL}/api/test-cases`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(tcForm)
+                        });
+                        if (!response.ok) throw new Error('Failed to create test case');
+                    }
+                    closeTestCaseModal();
+                    fetchTestCases();
+                } catch (err) {
+                    alert(`Error: ${err.message}`);
+                } finally {
+                    setSaving(false);
+                }
+            };
+
+            const deleteTestCase = async (testId) => {
+                if (!confirm(`Delete test case ${testId}?`)) return;
+
+                try {
+                    const response = await fetch(`${API_URL}/api/test-cases/${testId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (!response.ok) throw new Error('Failed to delete test case');
+
+                    fetchTestCases();
+                } catch (err) {
+                    alert(`Error: ${err.message}`);
+                }
+            };
+
+            // Initial fetch for all badge counts
+            useEffect(() => {
+                if (!isAuthenticated) return;
+                const fetchAllCounts = async () => {
+                    try {
+                        const [sessionsRes, reqRes, tcRes] = await Promise.all([
+                            fetch(`${API_URL}/api/sessions/pending`),
+                            fetch(`${API_URL}/api/requirements`),
+                            fetch(`${API_URL}/api/test-cases`)
+                        ]);
+                        const sessionsData = await sessionsRes.json();
+                        const reqData = await reqRes.json();
+                        const tcData = await tcRes.json();
+                        setSessions(sessionsData.sessions || []);
+                        setRequirements(reqData.requirements || reqData || []);
+                        setTestCases(tcData.testCases || tcData || []);
+                    } catch (err) {
+                        console.error('Failed to fetch counts:', err);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+                fetchAllCounts();
+            }, [isAuthenticated]);
+
+            // Tab-specific fetch and auto-refresh for sessions
+            useEffect(() => {
+                if (!isAuthenticated) return;
+                if (activeTab === 'sessions') {
+                    fetchPendingSessions();
+                    const interval = setInterval(fetchPendingSessions, 10000);
+                    return () => clearInterval(interval);
+                } else if (activeTab === 'requirements') {
+                    fetchRequirements();
+                } else if (activeTab === 'testcases') {
+                    fetchTestCases();
+                }
+            }, [isAuthenticated, activeTab]);
+
+            if (!isAuthenticated) {
+                return <LoginForm onLogin={() => setIsAuthenticated(true)} />;
+            }
+
+            const startTesting = (session) => {
+                setTestingSession(session);
+                setCurrentTestIndex(0);
+                setTestResults({});
+                setCurrentComment('');
+            };
+
+            const getAllTestCases = (session) => {
+                const allTests = [];
+                session.requirements.forEach(req => {
+                    req.testCases.forEach(tc => {
+                        allTests.push({
+                            ...tc,
+                            reqId: req.requirement.reqId
+                        });
+                    });
+                });
+                return allTests;
+            };
+
+            const recordVerdict = (status) => {
+                if (!testingSession) return;
+
+                const allTests = getAllTestCases(testingSession);
+                const currentTest = allTests[currentTestIndex];
+
+                setTestResults(prev => ({
+                    ...prev,
+                    [currentTest.reqId]: {
+                        ...prev[currentTest.reqId],
+                        [currentTest.testId]: {
+                            status,
+                            message: currentComment || `Test ${status.toLowerCase()}`
+                        }
+                    }
+                }));
+
+                setCurrentComment('');
+
+                if (currentTestIndex < allTests.length - 1) {
+                    setCurrentTestIndex(prev => prev + 1);
+                }
+            };
+
+            const generatePdfReport = (session, results, verdict, httpStatusCode) => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const pageWidth = doc.internal.pageSize.getWidth();
+                let y = 20;
+
+                // Header
+                doc.setFontSize(20);
+                doc.setTextColor(0, 153, 94);
+                doc.text('TrueStory', pageWidth / 2, y, { align: 'center' });
+                y += 8;
+                doc.setFontSize(14);
+                doc.setTextColor(100, 100, 100);
+                doc.text('QA Test Report', pageWidth / 2, y, { align: 'center' });
+                y += 15;
+
+                // Session Info
+                doc.setFontSize(12);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`Session ID: ${session.session.sessionId}`, 20, y);
+                y += 7;
+                doc.text(`Commit: ${session.session.commitTitle}`, 20, y);
+                y += 7;
+                doc.text(`Date: ${new Date().toLocaleString()}`, 20, y);
+                y += 12;
+
+                // Verdict
+                doc.setFontSize(14);
+                if (verdict === 'PASS') {
+                    doc.setTextColor(0, 153, 94);
+                } else if (verdict === 'WARNING') {
+                    doc.setTextColor(255, 184, 0);
+                } else {
+                    doc.setTextColor(255, 56, 96);
+                }
+                doc.text(`Verdict: ${verdict}`, 20, y);
+                doc.setTextColor(100, 100, 100);
+                doc.text(`HTTP Status: ${httpStatusCode}`, 100, y);
+                y += 15;
+
+                // Results by Requirement
+                doc.setFontSize(12);
+                doc.setTextColor(0, 0, 0);
+
+                session.requirements.forEach(req => {
+                    if (y > 260) {
+                        doc.addPage();
+                        y = 20;
+                    }
+
+                    doc.setFontSize(11);
+                    doc.setTextColor(0, 153, 94);
+                    doc.text(`${req.requirement.reqId}: ${req.requirement.title}`, 20, y);
+                    y += 8;
+
+                    req.testCases.forEach(tc => {
+                        if (y > 270) {
+                            doc.addPage();
+                            y = 20;
+                        }
+
+                        const result = results[req.requirement.reqId]?.[tc.testId];
+                        const status = result?.status || 'N/A';
+                        const message = result?.message || '';
+
+                        doc.setFontSize(10);
+                        doc.setTextColor(60, 60, 60);
+                        doc.text(`${tc.testId}: ${tc.title}`, 25, y);
+                        y += 5;
+
+                        if (status === 'PASS') {
+                            doc.setTextColor(0, 153, 94);
+                        } else if (status === 'WARNING') {
+                            doc.setTextColor(255, 184, 0);
+                        } else if (status === 'FAIL') {
+                            doc.setTextColor(255, 56, 96);
+                        } else {
+                            doc.setTextColor(100, 100, 100);
+                        }
+                        doc.text(`Status: ${status}`, 30, y);
+                        y += 5;
+
+                        if (message) {
+                            doc.setTextColor(100, 100, 100);
+                            const lines = doc.splitTextToSize(`Comment: ${message}`, pageWidth - 50);
+                            doc.text(lines, 30, y);
+                            y += lines.length * 5;
+                        }
+                        y += 3;
+                    });
+                    y += 5;
+                });
+
+                // Footer
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(8);
+                    doc.setTextColor(150, 150, 150);
+                    doc.text(`Generated by TrueStory - Page ${i} of ${pageCount}`, pageWidth / 2, 290, { align: 'center' });
+                }
+
+                // Save
+                const filename = `TrueStory_Report_${session.session.sessionId.substring(0, 8)}_${new Date().toISOString().split('T')[0]}.pdf`;
+                doc.save(filename);
+            };
+
+            const submitResults = async () => {
+                if (!testingSession) return;
+
+                try {
+                    const response = await fetch(`${API_URL}/api/answerPR`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            sessionId: testingSession.session.sessionId,
+                            results: testResults
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    // Generate PDF report
+                    generatePdfReport(testingSession, testResults, data.verdict, data.httpStatusCode);
+
+                    alert(`Test session completed!\nVerdict: ${data.verdict}\nHTTP Status: ${data.httpStatusCode}\n\nPDF report downloaded.`);
+
+                    setTestingSession(null);
+                    setTestResults({});
+                    setCurrentTestIndex(0);
+                    fetchPendingSessions();
+                } catch (err) {
+                    alert(`Error submitting results: ${err.message}`);
+                }
+            };
+
+            const allTests = testingSession ? getAllTestCases(testingSession) : [];
+            const currentTest = allTests[currentTestIndex];
+            const progress = allTests.length > 0 ? ((currentTestIndex + 1) / allTests.length) * 100 : 0;
+            const isLastTest = currentTestIndex === allTests.length - 1;
+            const allTestsAnswered = Object.keys(testResults).length > 0 && 
+                allTests.every(t => testResults[t.reqId]?.[t.testId]);
+
+            return (
+                <div className="app-container">
+                    <div className="header">
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                            <button className="logout-btn" onClick={handleLogout}>
+                                Logout
+                            </button>
+                        </div>
+                        <h1>TrueStory Project Dashboard</h1>
+                        <p>Manage requirements and test sessions</p>
+                    </div>
+
+                    <div className="tabs">
+                        <button
+                            className={`tab ${activeTab === 'sessions' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('sessions')}
+                        >
+                            Test Sessions
+                            <span className="tab-badge">{sessions.length}</span>
+                        </button>
+                        <button
+                            className={`tab ${activeTab === 'requirements' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('requirements')}
+                        >
+                            Requirements
+                            <span className="tab-badge">{requirements.length}</span>
+                        </button>
+                        <button
+                            className={`tab ${activeTab === 'testcases' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('testcases')}
+                        >
+                            Test Cases
+                            <span className="tab-badge">{testCases.length}</span>
+                        </button>
+                    </div>
+
+                    {error && (
+                        <div className="error">
+                            Error: {error}
+                        </div>
+                    )}
+
+                    {activeTab === 'requirements' && (
+                        <>
+                            <div className="requirements-header">
+                                <h2>Requirements ({requirements.length})</h2>
+                                <button className="add-btn" onClick={openAddRequirement}>
+                                    Add Requirement
+                                </button>
+                            </div>
+
+                            {loading && (
+                                <div className="loading">
+                                    <h2>Loading requirements...</h2>
+                                </div>
+                            )}
+
+                            {!loading && requirements.length === 0 && (
+                                <div className="empty-state">
+                                    <h2>No requirements</h2>
+                                    <p>Add your first requirement to get started</p>
+                                </div>
+                            )}
+
+                            {!loading && requirements.map((req, idx) => (
+                                <div key={idx} className="requirement-card">
+                                    <div className="requirement-card-header">
+                                        <div>
+                                            <div className="requirement-card-title">{req.title}</div>
+                                            <div className="requirement-card-id">{req.reqId}</div>
+                                        </div>
+                                        <div className="requirement-card-actions">
+                                            <button className="edit-btn" onClick={() => openEditRequirement(req)}>
+                                                Edit
+                                            </button>
+                                            <button className="delete-btn" onClick={() => deleteRequirement(req.reqId)}>
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {req.description && (
+                                        <div className="requirement-card-description">{req.description}</div>
+                                    )}
+                                </div>
+                            ))}
+                        </>
+                    )}
+
+                    {activeTab === 'testcases' && (
+                        <>
+                            <div className="requirements-header">
+                                <h2>Test Cases ({testCases.length})</h2>
+                                <button className="add-btn" onClick={openAddTestCase}>
+                                    Add Test Case
+                                </button>
+                            </div>
+
+                            {loading && (
+                                <div className="loading">
+                                    <h2>Loading test cases...</h2>
+                                </div>
+                            )}
+
+                            {!loading && testCases.length === 0 && (
+                                <div className="empty-state">
+                                    <h2>No test cases</h2>
+                                    <p>Add your first test case to get started</p>
+                                </div>
+                            )}
+
+                            {!loading && getTestCasesGroupedByRequirement().map((group, idx) => (
+                                <div key={idx} className="group-card">
+                                    <div
+                                        className="group-header"
+                                        onClick={() => toggleGroup(group.requirement.reqId)}
+                                    >
+                                        <div className="group-info">
+                                            <span className={`group-toggle ${expandedGroups[group.requirement.reqId] ? 'expanded' : ''}`}>
+                                                ▶
+                                            </span>
+                                            <span className="group-req-id">{group.requirement.reqId}</span>
+                                            <span className="group-title">{group.requirement.title}</span>
+                                        </div>
+                                        <span className="group-count">
+                                            {group.testCases.length} test{group.testCases.length !== 1 ? 's' : ''}
+                                        </span>
+                                    </div>
+                                    <div className={`group-content ${expandedGroups[group.requirement.reqId] ? 'expanded' : ''}`}>
+                                        {group.testCases.map((tc, tcIdx) => (
+                                            <div key={tcIdx} className="group-test-case">
+                                                <div className="group-test-case-header">
+                                                    <div>
+                                                        <div className="group-test-case-id">{tc.testId}</div>
+                                                        <div className="group-test-case-title">{tc.title}</div>
+                                                    </div>
+                                                    <div className="requirement-card-actions">
+                                                        <button className="edit-btn" onClick={() => openEditTestCase(tc)}>
+                                                            Edit
+                                                        </button>
+                                                        <button className="delete-btn" onClick={() => deleteTestCase(tc.testId)}>
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                {tc.description && (
+                                                    <div className="group-test-case-desc">{tc.description}</div>
+                                                )}
+                                                <div className="group-test-case-meta">
+                                                    <span className={`severity-badge severity-${tc.severity?.toLowerCase() || 'medium'}`}>
+                                                        {tc.severity || 'MEDIUM'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </>
+                    )}
+
+                    {activeTab === 'sessions' && (
+                        <>
+                            <div className="api-config">
+                                <button
+                                    className="refresh-btn"
+                                    onClick={fetchPendingSessions}
+                                    disabled={loading}
+                                >
+                                    {loading ? 'Loading...' : 'Refresh'}
+                                </button>
+                            </div>
+
+                            {loading && (
+                                <div className="loading">
+                                    <h2>Loading pending sessions...</h2>
+                                </div>
+                            )}
+
+                            {!loading && sessions.length === 0 && (
+                                <div className="empty-state">
+                                    <h2>No pending sessions</h2>
+                                    <p>Submit a PR to create a test session</p>
+                                </div>
+                            )}
+
+                    <div className="sessions-list">
+                        {sessions.map((session, idx) => (
+                            <div key={idx} className="session-card">
+                                <div className="session-header">
+                                    <div>
+                                        <div className="session-title">
+                                            {session.session.commitTitle}
+                                        </div>
+                                        <div className="session-meta">
+                                            Session ID: {session.session.sessionId}
+                                        </div>
+                                        <div className="session-meta">
+                                            Created: {new Date(session.session.createdAt).toLocaleString()}
+                                        </div>
+                                        {extractPreviewUrl(session.session.commitDescription) && (
+                                            <a
+                                                href={extractPreviewUrl(session.session.commitDescription)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="preview-link"
+                                            >
+                                                Open Preview
+                                            </a>
+                                        )}
+                                    </div>
+                                    <span className="status-badge status-pending">
+                                        PENDING
+                                    </span>
+                                </div>
+
+                                <div className="requirements-section">
+                                    <h3 style={{ color: '#e6edf3', marginBottom: '1rem' }}>
+                                        Requirements ({session.requirements.length})
+                                    </h3>
+                                    {session.requirements.map((req, reqIdx) => (
+                                        <div key={reqIdx} className="requirement">
+                                            <div className="requirement-header">
+                                                <span className="req-id">
+                                                    {req.requirement.reqId}
+                                                </span>
+                                            </div>
+                                            <div style={{ color: '#e6edf3', fontWeight: 600, marginBottom: '0.5rem' }}>
+                                                {req.requirement.title}
+                                            </div>
+                                            <div style={{ color: '#8b949e', fontSize: '0.9rem' }}>
+                                                {req.requirement.description}
+                                            </div>
+
+                                            <div className="test-cases">
+                                                <div style={{ color: '#8b949e', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                                                    Test Cases: {req.testCases.length}
+                                                </div>
+                                                {req.testCases.map((tc, tcIdx) => (
+                                                    <div key={tcIdx} className="test-case">
+                                                        <div>
+                                                            <span className="test-case-id">{tc.testId}</span>
+                                                            <span className="test-case-title">{tc.title}</span>
+                                                        </div>
+                                                        <span className={`severity-badge severity-${tc.severity.toLowerCase()}`}>
+                                                            {tc.severity}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <button
+                                    className="test-btn"
+                                    onClick={() => startTesting(session)}
+                                >
+                                    Start Testing
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                        </>
+                    )}
+
+                    {testingSession && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <div className="modal-header">
+                                    <h2 className="modal-title">
+                                        Testing: {testingSession.session.commitTitle}
+                                    </h2>
+                                    <button 
+                                        className="close-btn"
+                                        onClick={() => setTestingSession(null)}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+
+                                <div className="test-progress">
+                                    <div className="progress-bar">
+                                        <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+                                    </div>
+                                    <div className="progress-text">
+                                        Test {currentTestIndex + 1} of {allTests.length}
+                                    </div>
+                                </div>
+
+                                {currentTest && (
+                                    <div className="test-case-testing">
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                                            <h3>{currentTest.testId}: {currentTest.title}</h3>
+                                            <span className={`severity-badge severity-${currentTest.severity.toLowerCase()}`}>
+                                                {currentTest.severity}
+                                            </span>
+                                        </div>
+                                        <p>{currentTest.description}</p>
+
+                                        <div className="test-buttons">
+                                            <button 
+                                                className="verdict-btn pass"
+                                                onClick={() => recordVerdict('PASS')}
+                                            >
+                                                ✓ PASS
+                                            </button>
+                                            <button 
+                                                className="verdict-btn warning"
+                                                onClick={() => recordVerdict('WARNING')}
+                                            >
+                                                ⚠ WARNING
+                                            </button>
+                                            <button 
+                                                className="verdict-btn fail"
+                                                onClick={() => recordVerdict('FAIL')}
+                                            >
+                                                ✗ FAIL
+                                            </button>
+                                        </div>
+
+                                        <textarea
+                                            className="comment-input"
+                                            placeholder="Add comment (optional)..."
+                                            value={currentComment}
+                                            onChange={(e) => setCurrentComment(e.target.value)}
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="nav-buttons">
+                                    <button 
+                                        className="nav-btn"
+                                        onClick={() => setCurrentTestIndex(prev => Math.max(0, prev - 1))}
+                                        disabled={currentTestIndex === 0}
+                                    >
+                                        ← Previous
+                                    </button>
+                                    <button 
+                                        className="nav-btn"
+                                        onClick={() => setCurrentTestIndex(prev => Math.min(allTests.length - 1, prev + 1))}
+                                        disabled={isLastTest}
+                                    >
+                                        Next →
+                                    </button>
+                                </div>
+
+                                {allTestsAnswered && (
+                                    <button 
+                                        className="submit-btn"
+                                        onClick={submitResults}
+                                    >
+                                        ✓ Submit Test Results
+                                    </button>
+                                )}
+
+                                {!allTestsAnswered && (
+                                    <div style={{ textAlign: 'center', marginTop: '2rem', color: '#8b949e' }}>
+                                        Answer all tests to submit results
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {showRequirementModal && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <div className="modal-header">
+                                    <h2 className="modal-title">
+                                        {editingRequirement ? 'Edit Requirement' : 'Add Requirement'}
+                                    </h2>
+                                    <button className="close-btn" onClick={closeRequirementModal}>
+                                        ✕
+                                    </button>
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Requirement ID</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g., REQ-001"
+                                        value={reqForm.reqId}
+                                        onChange={(e) => setReqForm({ ...reqForm, reqId: e.target.value })}
+                                        disabled={!!editingRequirement}
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Title</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Requirement title"
+                                        value={reqForm.title}
+                                        onChange={(e) => setReqForm({ ...reqForm, title: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Description</label>
+                                    <textarea
+                                        placeholder="Detailed description of the requirement"
+                                        value={reqForm.description}
+                                        onChange={(e) => setReqForm({ ...reqForm, description: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="form-actions">
+                                    <button className="cancel-btn" onClick={closeRequirementModal}>
+                                        Cancel
+                                    </button>
+                                    <button
+                                        className="save-btn"
+                                        onClick={saveRequirement}
+                                        disabled={saving || !reqForm.reqId || !reqForm.title}
+                                    >
+                                        {saving ? 'Saving...' : 'Save'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {showTestCaseModal && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <div className="modal-header">
+                                    <h2 className="modal-title">
+                                        {editingTestCase ? 'Edit Test Case' : 'Add Test Case'}
+                                    </h2>
+                                    <button className="close-btn" onClick={closeTestCaseModal}>
+                                        ✕
+                                    </button>
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Test Case ID</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g., TC-001"
+                                        value={tcForm.testId}
+                                        onChange={(e) => setTcForm({ ...tcForm, testId: e.target.value })}
+                                        disabled={!!editingTestCase}
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Requirement</label>
+                                    <select
+                                        value={tcForm.reqId}
+                                        onChange={(e) => setTcForm({ ...tcForm, reqId: e.target.value })}
+                                        disabled={!!editingTestCase}
+                                    >
+                                        <option value="">Select a requirement...</option>
+                                        {requirements.map((req, idx) => (
+                                            <option key={idx} value={req.reqId}>
+                                                {req.reqId} - {req.title}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Title</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Test case title"
+                                        value={tcForm.title}
+                                        onChange={(e) => setTcForm({ ...tcForm, title: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Description</label>
+                                    <textarea
+                                        placeholder="Detailed description of the test case"
+                                        value={tcForm.description}
+                                        onChange={(e) => setTcForm({ ...tcForm, description: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Severity</label>
+                                    <select
+                                        value={tcForm.severity}
+                                        onChange={(e) => setTcForm({ ...tcForm, severity: e.target.value })}
+                                    >
+                                        <option value="LOW">Low</option>
+                                        <option value="MEDIUM">Medium</option>
+                                        <option value="HIGH">High</option>
+                                        <option value="CRITICAL">Critical</option>
+                                    </select>
+                                </div>
+
+                                <div className="form-actions">
+                                    <button className="cancel-btn" onClick={closeTestCaseModal}>
+                                        Cancel
+                                    </button>
+                                    <button
+                                        className="save-btn"
+                                        onClick={saveTestCase}
+                                        disabled={saving || !tcForm.testId || !tcForm.title || (!editingTestCase && !tcForm.reqId)}
+                                    >
+                                        {saving ? 'Saving...' : 'Save'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
