@@ -1027,6 +1027,128 @@
             background: rgba(0, 255, 157, 0.2);
             transform: translateY(-1px);
         }
+
+        .coverage-container {
+            background: #1a2332;
+            border: 2px solid #30363d;
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .coverage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .coverage-legend {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.85rem;
+            color: #8b949e;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .coverage-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            gap: 1rem;
+        }
+
+        .coverage-req-id {
+            font-family: 'Courier New', monospace;
+            color: #00ff9d;
+            font-size: 0.9rem;
+            font-weight: 600;
+            min-width: 80px;
+        }
+
+        .coverage-req-title {
+            color: #8b949e;
+            font-size: 0.85rem;
+            min-width: 200px;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .coverage-bar-container {
+            flex: 1;
+            height: 24px;
+            background: #0a0e14;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .coverage-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+        }
+
+        .coverage-count {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #0a0e14;
+        }
+
+        .coverage-count-outside {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #8b949e;
+        }
+
+        .coverage-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .coverage-stat {
+            background: #0a0e14;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .coverage-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #00ff9d;
+        }
+
+        .coverage-stat-label {
+            font-size: 0.85rem;
+            color: #8b949e;
+            margin-top: 0.25rem;
+        }
     </style>
 </head>
 <body>
@@ -1134,6 +1256,44 @@
                 return groups;
             };
 
+            const getCoverageColor = (count, maxCount = 15) => {
+                if (count === 0) return '#30363d'; // Grey for no tests
+                const ratio = Math.min(count / maxCount, 1);
+                // Red (255, 56, 96) to Yellow (255, 184, 0) to Green (0, 255, 157)
+                if (ratio < 0.5) {
+                    // Red to Yellow
+                    const r = 255;
+                    const g = Math.round(56 + (184 - 56) * (ratio * 2));
+                    const b = Math.round(96 - 96 * (ratio * 2));
+                    return `rgb(${r}, ${g}, ${b})`;
+                } else {
+                    // Yellow to Green
+                    const adjustedRatio = (ratio - 0.5) * 2;
+                    const r = Math.round(255 - 255 * adjustedRatio);
+                    const g = Math.round(184 + (255 - 184) * adjustedRatio);
+                    const b = Math.round(0 + 157 * adjustedRatio);
+                    return `rgb(${r}, ${g}, ${b})`;
+                }
+            };
+
+            const getCoverageData = () => {
+                return requirements.map(req => ({
+                    reqId: req.reqId,
+                    title: req.title,
+                    testCount: req.testCases?.length || 0
+                }));
+            };
+
+            const getCoverageStats = () => {
+                const data = getCoverageData();
+                const totalReqs = data.length;
+                const totalTests = data.reduce((sum, r) => sum + r.testCount, 0);
+                const coveredReqs = data.filter(r => r.testCount > 0).length;
+                const avgTests = totalReqs > 0 ? (totalTests / totalReqs).toFixed(1) : 0;
+                const coveragePercent = totalReqs > 0 ? Math.round((coveredReqs / totalReqs) * 100) : 0;
+                return { totalReqs, totalTests, coveredReqs, avgTests, coveragePercent };
+            };
+
             const handleLogout = () => {
                 sessionStorage.removeItem('ts_authenticated');
                 setIsAuthenticated(false);
@@ -1143,7 +1303,7 @@
                 setLoading(true);
                 setError(null);
                 try {
-                    const response = await fetch(`${API_URL}/api/sessions/pending`);
+                    const response = await fetch(`${API_URL}/api/sessions-pending`);
                     if (!response.ok) throw new Error('Failed to fetch sessions');
                     const data = await response.json();
                     setSessions(data.sessions || []);
@@ -1158,12 +1318,17 @@
                 setLoading(true);
                 setError(null);
                 try {
-                    const response = await fetch(`${API_URL}/api/sessions/completed`);
+                    const response = await fetch(`${API_URL}/api/sessions-completed`);
+                    if (response.status === 404) {
+                        setCompletedSessions([]);
+                        return;
+                    }
                     if (!response.ok) throw new Error('Failed to fetch completed sessions');
                     const data = await response.json();
                     setCompletedSessions(data.sessions || []);
                 } catch (err) {
-                    setError(err.message);
+                    // Don't show error for empty results, just set empty array
+                    setCompletedSessions([]);
                 } finally {
                     setLoading(false);
                 }
@@ -1366,7 +1531,7 @@
                     try {
                         const [sessionsRes, completedRes, reqRes, tcRes] = await Promise.all([
                             fetch(`${API_URL}/api/sessions/pending`),
-                            fetch(`${API_URL}/api/sessions/completed`),
+                            fetch(`${API_URL}/api/sessions-completed`),
                             fetch(`${API_URL}/api/requirements`),
                             fetch(`${API_URL}/api/test-cases`)
                         ]);
@@ -1630,6 +1795,13 @@
                             Test Cases
                             <span className="tab-badge">{testCases.length}</span>
                         </button>
+                        <button
+                            className={`tab ${activeTab === 'coverage' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('coverage')}
+                        >
+                            Coverage
+                            <span className="tab-badge">{getCoverageStats().coveragePercent}%</span>
+                        </button>
                     </div>
 
                     {error && (
@@ -1753,6 +1925,88 @@
                                     </div>
                                 </div>
                             ))}
+                        </>
+                    )}
+
+                    {activeTab === 'coverage' && (
+                        <>
+                            <div className="coverage-container">
+                                <div className="coverage-header">
+                                    <h2 style={{ color: '#e6edf3', margin: 0 }}>Requirements Coverage Matrix</h2>
+                                    <div className="coverage-legend">
+                                        <div className="legend-item">
+                                            <div className="legend-color" style={{ background: '#30363d' }}></div>
+                                            <span>No tests</span>
+                                        </div>
+                                        <div className="legend-item">
+                                            <div className="legend-color" style={{ background: '#ff3860' }}></div>
+                                            <span>Low (1-5)</span>
+                                        </div>
+                                        <div className="legend-item">
+                                            <div className="legend-color" style={{ background: '#ffb800' }}></div>
+                                            <span>Medium (6-10)</span>
+                                        </div>
+                                        <div className="legend-item">
+                                            <div className="legend-color" style={{ background: '#00ff9d' }}></div>
+                                            <span>High (11-15+)</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="coverage-summary">
+                                    <div className="coverage-stat">
+                                        <div className="coverage-stat-value">{getCoverageStats().totalReqs}</div>
+                                        <div className="coverage-stat-label">Requirements</div>
+                                    </div>
+                                    <div className="coverage-stat">
+                                        <div className="coverage-stat-value">{getCoverageStats().totalTests}</div>
+                                        <div className="coverage-stat-label">Test Cases</div>
+                                    </div>
+                                    <div className="coverage-stat">
+                                        <div className="coverage-stat-value">{getCoverageStats().avgTests}</div>
+                                        <div className="coverage-stat-label">Avg Tests/Req</div>
+                                    </div>
+                                    <div className="coverage-stat">
+                                        <div className="coverage-stat-value" style={{
+                                            color: getCoverageStats().coveragePercent === 100 ? '#00ff9d' :
+                                                   getCoverageStats().coveragePercent >= 50 ? '#ffb800' : '#ff3860'
+                                        }}>
+                                            {getCoverageStats().coveragePercent}%
+                                        </div>
+                                        <div className="coverage-stat-label">Coverage</div>
+                                    </div>
+                                </div>
+
+                                {requirements.length === 0 && (
+                                    <div className="empty-state">
+                                        <h2>No requirements</h2>
+                                        <p>Add requirements to see coverage matrix</p>
+                                    </div>
+                                )}
+
+                                {getCoverageData().map((req, idx) => (
+                                    <div key={idx} className="coverage-row">
+                                        <span className="coverage-req-id">{req.reqId}</span>
+                                        <span className="coverage-req-title" title={req.title}>{req.title}</span>
+                                        <div className="coverage-bar-container">
+                                            <div
+                                                className="coverage-bar"
+                                                style={{
+                                                    width: req.testCount === 0 ? '100%' : `${Math.min((req.testCount / 15) * 100, 100)}%`,
+                                                    background: getCoverageColor(req.testCount)
+                                                }}
+                                            >
+                                                {req.testCount > 0 && (
+                                                    <span className="coverage-count">{req.testCount}</span>
+                                                )}
+                                            </div>
+                                            {req.testCount === 0 && (
+                                                <span className="coverage-count-outside">0</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </>
                     )}
 
