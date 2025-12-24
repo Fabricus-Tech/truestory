@@ -110,6 +110,16 @@
             color: #00ff9d;
         }
 
+        .status-fail {
+            background: rgba(255, 56, 96, 0.2);
+            color: #ff3860;
+        }
+
+        .status-warning {
+            background: rgba(255, 184, 0, 0.2);
+            color: #ffb800;
+        }
+
         .sessions-list {
             display: grid;
             gap: 1.5rem;
@@ -1078,7 +1088,9 @@
                 return sessionStorage.getItem('ts_authenticated') === 'true';
             });
             const [activeTab, setActiveTab] = useState('sessions');
+            const [sessionView, setSessionView] = useState('pending'); // 'pending' or 'completed'
             const [sessions, setSessions] = useState([]);
+            const [completedSessions, setCompletedSessions] = useState([]);
             const [requirements, setRequirements] = useState([]);
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
@@ -1139,6 +1151,41 @@
                     setError(err.message);
                 } finally {
                     setLoading(false);
+                }
+            };
+
+            const fetchCompletedSessions = async () => {
+                setLoading(true);
+                setError(null);
+                try {
+                    const response = await fetch(`${API_URL}/api/sessions/completed`);
+                    if (!response.ok) throw new Error('Failed to fetch completed sessions');
+                    const data = await response.json();
+                    setCompletedSessions(data.sessions || []);
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const deleteSession = async (sessionId) => {
+                if (!confirm(`Delete session ${sessionId.substring(0, 8)}...?`)) return;
+
+                try {
+                    const response = await fetch(`${API_URL}/api/sessions/${sessionId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (!response.ok) throw new Error('Failed to delete session');
+
+                    if (sessionView === 'pending') {
+                        fetchPendingSessions();
+                    } else {
+                        fetchCompletedSessions();
+                    }
+                } catch (err) {
+                    alert(`Error: ${err.message}`);
                 }
             };
 
@@ -1317,15 +1364,18 @@
                 if (!isAuthenticated) return;
                 const fetchAllCounts = async () => {
                     try {
-                        const [sessionsRes, reqRes, tcRes] = await Promise.all([
+                        const [sessionsRes, completedRes, reqRes, tcRes] = await Promise.all([
                             fetch(`${API_URL}/api/sessions/pending`),
+                            fetch(`${API_URL}/api/sessions/completed`),
                             fetch(`${API_URL}/api/requirements`),
                             fetch(`${API_URL}/api/test-cases`)
                         ]);
                         const sessionsData = await sessionsRes.json();
+                        const completedData = await completedRes.json();
                         const reqData = await reqRes.json();
                         const tcData = await tcRes.json();
                         setSessions(sessionsData.sessions || []);
+                        setCompletedSessions(completedData.sessions || []);
                         setRequirements(reqData.requirements || reqData || []);
                         setTestCases(tcData.testCases || tcData || []);
                     } catch (err) {
@@ -1341,15 +1391,19 @@
             useEffect(() => {
                 if (!isAuthenticated) return;
                 if (activeTab === 'sessions') {
-                    fetchPendingSessions();
-                    const interval = setInterval(fetchPendingSessions, 10000);
-                    return () => clearInterval(interval);
+                    if (sessionView === 'pending') {
+                        fetchPendingSessions();
+                        const interval = setInterval(fetchPendingSessions, 10000);
+                        return () => clearInterval(interval);
+                    } else {
+                        fetchCompletedSessions();
+                    }
                 } else if (activeTab === 'requirements') {
                     fetchRequirements();
                 } else if (activeTab === 'testcases') {
                     fetchTestCases();
                 }
-            }, [isAuthenticated, activeTab]);
+            }, [isAuthenticated, activeTab, sessionView]);
 
             if (!isAuthenticated) {
                 return <LoginForm onLogin={() => setIsAuthenticated(true)} />;
@@ -1704,11 +1758,42 @@
 
                     {activeTab === 'sessions' && (
                         <>
-                            <div className="api-config">
+                            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button
+                                        onClick={() => setSessionView('pending')}
+                                        style={{
+                                            padding: '0.5rem 1rem',
+                                            borderRadius: '6px',
+                                            border: sessionView === 'pending' ? '2px solid #00ff9d' : '2px solid #30363d',
+                                            background: sessionView === 'pending' ? 'rgba(0, 255, 157, 0.1)' : 'transparent',
+                                            color: sessionView === 'pending' ? '#00ff9d' : '#8b949e',
+                                            cursor: 'pointer',
+                                            fontWeight: 600
+                                        }}
+                                    >
+                                        Pending ({sessions.length})
+                                    </button>
+                                    <button
+                                        onClick={() => setSessionView('completed')}
+                                        style={{
+                                            padding: '0.5rem 1rem',
+                                            borderRadius: '6px',
+                                            border: sessionView === 'completed' ? '2px solid #00ff9d' : '2px solid #30363d',
+                                            background: sessionView === 'completed' ? 'rgba(0, 255, 157, 0.1)' : 'transparent',
+                                            color: sessionView === 'completed' ? '#00ff9d' : '#8b949e',
+                                            cursor: 'pointer',
+                                            fontWeight: 600
+                                        }}
+                                    >
+                                        Completed ({completedSessions.length})
+                                    </button>
+                                </div>
                                 <button
                                     className="refresh-btn"
-                                    onClick={fetchPendingSessions}
+                                    onClick={sessionView === 'pending' ? fetchPendingSessions : fetchCompletedSessions}
                                     disabled={loading}
+                                    style={{ marginLeft: 'auto' }}
                                 >
                                     {loading ? 'Loading...' : 'Refresh'}
                                 </button>
@@ -1716,94 +1801,159 @@
 
                             {loading && (
                                 <div className="loading">
-                                    <h2>Loading pending sessions...</h2>
+                                    <h2>Loading {sessionView} sessions...</h2>
                                 </div>
                             )}
 
-                            {!loading && sessions.length === 0 && (
+                            {/* Pending Sessions */}
+                            {sessionView === 'pending' && !loading && sessions.length === 0 && (
                                 <div className="empty-state">
                                     <h2>No pending sessions</h2>
                                     <p>Submit a PR to create a test session</p>
                                 </div>
                             )}
 
-                    <div className="sessions-list">
-                        {sessions.map((session, idx) => (
-                            <div key={idx} className="session-card">
-                                <div className="session-header">
-                                    <div>
-                                        <div className="session-title">
-                                            {session.session.commitTitle}
-                                        </div>
-                                        <div className="session-meta">
-                                            Session ID: {session.session.sessionId}
-                                        </div>
-                                        <div className="session-meta">
-                                            Created: {new Date(session.session.createdAt).toLocaleString()}
-                                        </div>
-                                        {extractPreviewUrl(session.session.commitDescription) && (
-                                            <a
-                                                href={extractPreviewUrl(session.session.commitDescription)}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="preview-link"
-                                            >
-                                                Open Preview
-                                            </a>
-                                        )}
-                                    </div>
-                                    <span className="status-badge status-pending">
-                                        PENDING
-                                    </span>
-                                </div>
-
-                                <div className="requirements-section">
-                                    <h3 style={{ color: '#e6edf3', marginBottom: '1rem' }}>
-                                        Requirements ({session.requirements.length})
-                                    </h3>
-                                    {session.requirements.map((req, reqIdx) => (
-                                        <div key={reqIdx} className="requirement">
-                                            <div className="requirement-header">
-                                                <span className="req-id">
-                                                    {req.requirement.reqId}
-                                                </span>
-                                            </div>
-                                            <div style={{ color: '#e6edf3', fontWeight: 600, marginBottom: '0.5rem' }}>
-                                                {req.requirement.title}
-                                            </div>
-                                            <div style={{ color: '#8b949e', fontSize: '0.9rem' }}>
-                                                {req.requirement.description}
-                                            </div>
-
-                                            <div className="test-cases">
-                                                <div style={{ color: '#8b949e', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                                                    Test Cases: {req.testCases.length}
+                            {sessionView === 'pending' && !loading && (
+                                <div className="sessions-list">
+                                    {sessions.map((session, idx) => (
+                                        <div key={idx} className="session-card">
+                                            <div className="session-header">
+                                                <div>
+                                                    <div className="session-title">
+                                                        {session.session.commitTitle}
+                                                    </div>
+                                                    <div className="session-meta">
+                                                        Session ID: {session.session.sessionId.substring(0, 8)}...
+                                                    </div>
+                                                    <div className="session-meta">
+                                                        Created: {new Date(session.session.createdAt).toLocaleString()}
+                                                    </div>
+                                                    {extractPreviewUrl(session.session.commitDescription) && (
+                                                        <a
+                                                            href={extractPreviewUrl(session.session.commitDescription)}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="preview-link"
+                                                        >
+                                                            Open Preview
+                                                        </a>
+                                                    )}
                                                 </div>
-                                                {req.testCases.map((tc, tcIdx) => (
-                                                    <div key={tcIdx} className="test-case">
-                                                        <div>
-                                                            <span className="test-case-id">{tc.testId}</span>
-                                                            <span className="test-case-title">{tc.title}</span>
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                                                    <span className="status-badge status-pending">PENDING</span>
+                                                    <button className="delete-btn" onClick={() => deleteSession(session.session.sessionId)}>
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="requirements-section">
+                                                <h3 style={{ color: '#e6edf3', marginBottom: '1rem' }}>
+                                                    Requirements ({session.requirements.length})
+                                                </h3>
+                                                {session.requirements.map((req, reqIdx) => (
+                                                    <div key={reqIdx} className="requirement">
+                                                        <div className="requirement-header">
+                                                            <span className="req-id">{req.requirement.reqId}</span>
                                                         </div>
-                                                        <span className={`severity-badge severity-${tc.severity.toLowerCase()}`}>
-                                                            {tc.severity}
-                                                        </span>
+                                                        <div style={{ color: '#e6edf3', fontWeight: 600, marginBottom: '0.5rem' }}>
+                                                            {req.requirement.title}
+                                                        </div>
+                                                        <div className="test-cases">
+                                                            <div style={{ color: '#8b949e', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                                                                Test Cases: {req.testCases.length}
+                                                            </div>
+                                                            {req.testCases.map((tc, tcIdx) => (
+                                                                <div key={tcIdx} className="test-case">
+                                                                    <div>
+                                                                        <span className="test-case-id">{tc.testId}</span>
+                                                                        <span className="test-case-title">{tc.title}</span>
+                                                                    </div>
+                                                                    <span className={`severity-badge severity-${tc.severity.toLowerCase()}`}>
+                                                                        {tc.severity}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <button className="test-btn" onClick={() => startTesting(session)}>
+                                                Start Testing
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Completed Sessions */}
+                            {sessionView === 'completed' && !loading && completedSessions.length === 0 && (
+                                <div className="empty-state">
+                                    <h2>No completed sessions</h2>
+                                    <p>Complete a test session to see history</p>
+                                </div>
+                            )}
+
+                            {sessionView === 'completed' && !loading && (
+                                <div className="sessions-list">
+                                    {completedSessions.map((session, idx) => (
+                                        <div key={idx} className="session-card">
+                                            <div className="session-header">
+                                                <div>
+                                                    <div className="session-title">
+                                                        {session.session.commitTitle}
+                                                    </div>
+                                                    <div className="session-meta">
+                                                        Session ID: {session.session.sessionId.substring(0, 8)}...
+                                                    </div>
+                                                    <div className="session-meta">
+                                                        Completed: {session.session.completedAt ? new Date(session.session.completedAt).toLocaleString() : 'N/A'}
+                                                    </div>
+                                                    {extractPreviewUrl(session.session.commitDescription) && (
+                                                        <a
+                                                            href={extractPreviewUrl(session.session.commitDescription)}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="preview-link"
+                                                        >
+                                                            Open Preview
+                                                        </a>
+                                                    )}
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                                                    <span className={`status-badge ${
+                                                        session.session.finalVerdict === 'PASS' ? 'status-completed' :
+                                                        session.session.finalVerdict === 'FAIL' ? 'status-fail' :
+                                                        'status-warning'
+                                                    }`}>
+                                                        {session.session.finalVerdict || 'COMPLETED'}
+                                                    </span>
+                                                    <button className="delete-btn" onClick={() => deleteSession(session.session.sessionId)}>
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="requirements-section">
+                                                <h3 style={{ color: '#e6edf3', marginBottom: '1rem' }}>
+                                                    Requirements ({session.requirements.length})
+                                                </h3>
+                                                {session.requirements.map((req, reqIdx) => (
+                                                    <div key={reqIdx} className="requirement">
+                                                        <div className="requirement-header">
+                                                            <span className="req-id">{req.requirement.reqId}</span>
+                                                        </div>
+                                                        <div style={{ color: '#e6edf3', fontWeight: 600, marginBottom: '0.5rem' }}>
+                                                            {req.requirement.title}
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                     ))}
                                 </div>
-
-                                <button
-                                    className="test-btn"
-                                    onClick={() => startTesting(session)}
-                                >
-                                    Start Testing
-                                </button>
-                            </div>
-                        ))}
-                    </div>
+                            )}
                         </>
                     )}
 
